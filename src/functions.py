@@ -1,3 +1,9 @@
+import pandas as pd
+import numpy as np
+from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.preprocessing import LabelEncoder
+
+
 def load_OU_data(prediction_window = 120):
     """
     Loads data from '/content' folder, and prepares it for modeling.  It imports only data up to the relative date from course start that is passed as the argument 'prediction_window'.
@@ -82,10 +88,11 @@ def load_OU_data(prediction_window = 120):
                 'score':'average_score','date':'days_studied',
                 'id_site':'activities_completed','sum_click':'total_clicks'}
     full_registrations = full_registrations.rename(columns = new_cols)
+    full_registrations['code_module'] = LabelEncoder().fit_transform(full_registrations['code_module'])
 
     return full_registrations
     
-class CourseScaler():
+class CourseScaler(TransformerMixin, BaseEstimator):
     """
     Standardizes 'days_studied','activities_completed','total_clicks','assessments_completed', and 'average_score' if they are present in the dataframe.
     methods:
@@ -98,14 +105,12 @@ class CourseScaler():
     
     def fit(self,X,y=None):
         import pandas as pd
-        cols = ['activities_completed','days_studied','total_clicks','assessments_completed', \
-           'average_score']
-        self.cols = []
-        for col in cols:
-            if col in X.columns:
-                self.cols.append(col)
+        self.cols = X.select_dtypes(include='number').columns
         if len(self.cols) == 0:
             print('No columns to standardize')
+            return None
+        elif 'code_module' not in X.columns:
+            print('column "code_module" not found')
             return None
         else:
             modules = X['code_module'].unique()
@@ -118,8 +123,10 @@ class CourseScaler():
                     std = course_X[col].std()
                     self.means.loc[module, col] = mean
                     self.stds.loc[module, col] = std
-    
+            return self
+        
     def transform(self,X,y=None):
+        import pandas as pd
         if not hasattr(self,'means'):
             print('Not yet fit')
             return None
@@ -136,11 +143,9 @@ class CourseScaler():
                 scaled_X = pd.concat([scaled_X,course_X], axis = 0)
             scaled_X.sort_index(inplace = True)
             scaled_X.index = i
+            scaled_X = scaled_X.drop('code_module',axis=1)
             return scaled_X
-    
-    def fit_transform(self,X,y=None):
-        self.fit(X)
-        return self.transform(X)
+
     
 def fail_recall(y_true,y_pred):
     from sklearn.metrics import recall_score
