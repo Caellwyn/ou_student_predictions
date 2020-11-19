@@ -4,7 +4,7 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.preprocessing import LabelEncoder
 
 
-def load_OU_data(prediction_window = 120):
+def load_OU_data(prediction_window = None):
     """
     Loads data from '/content' folder, and prepares it for modeling.  It imports only data up to the relative date from course start that is passed as the argument 'prediction_window'.
     concatenates data from:
@@ -25,15 +25,18 @@ def load_OU_data(prediction_window = 120):
     """
     import pandas as pd
     import numpy as np
-    
+    import zipfile
+
     # import data
-    registrations = pd.read_csv('../content/studentRegistration.csv')
-    courseInfo = pd.read_csv('../content/courses.csv')
-    students = pd.read_csv('../content/studentInfo.csv')
-    student_vle = pd.read_csv('../content/studentVle.csv')
-    vle_info = pd.read_csv('../content/vle.csv')
-    student_assessments = pd.read_csv('../content/studentAssessment.csv', skiprows=[128223,64073])
-    assessments_info = pd.read_csv('../content/assessments.csv')
+    zf = zipfile.ZipFile('../content/anonymisedData.zip') 
+
+    registrations = pd.read_csv(zf.open('studentRegistration.csv'))
+    courseInfo = pd.read_csv(zf.open('courses.csv'))
+    students = pd.read_csv(zf.open('studentInfo.csv'))
+    student_vle = pd.read_csv(zf.open('studentVle.csv'))
+    vle_info = pd.read_csv(zf.open('vle.csv'))
+    student_assessments = pd.read_csv(zf.open('studentAssessment.csv'), skiprows=[128223,64073])
+    assessments_info = pd.read_csv(zf.open('assessments.csv'))
 
     index_columns = ['code_module','code_presentation','id_student']
 
@@ -43,13 +46,21 @@ def load_OU_data(prediction_window = 120):
                              on=['code_module','code_presentation'], validate='many_to_one')
     full_registrations.dropna(subset=['date_registration','imd_band'], inplace=True)
     not_withdrawn = full_registrations['date_unregistration'].isna()
-    withdrawn_after_predict = (full_registrations['final_result'] == 'Withdrawn') \
-                                & (full_registrations['date_unregistration'] > prediction_window)
+    if prediction_window:
+        withdrawn_after_predict = (full_registrations['final_result'] == 'Withdrawn') \
+                                    & (full_registrations['date_unregistration'] > prediction_window)
+    else:
+        withdrawn_after_predict = (full_registrations['final_result'] == 'Withdrawn') \
+                                    & (full_registrations['date_unregistration'] > 0)
     full_registrations = full_registrations[not_withdrawn | withdrawn_after_predict]
-    full_registrations.drop(columns=['date_unregistration'], inplace=True)
+    full_registrations['date_unregistration'].fillna( \
+        full_registrations['module_presentation_length'], inplace = True)
+    if prediction_window:
+        full_registrations.drop(columns=['date_unregistration'], inplace=True)
 
     # VLE
-    student_vle = student_vle[student_vle.date <= prediction_window]
+    if prediction_window:
+        student_vle = student_vle[student_vle.date <= prediction_window]
     vle = pd.merge(student_vle,vle_info, 
                    how = 'left', \
                    on =['id_site','code_module', 'code_presentation'], \
@@ -73,7 +84,8 @@ def load_OU_data(prediction_window = 120):
     assessments = pd.merge(student_assessments, assessments_info, how='left', on='id_assessment')
     assessments.dropna(subset = ['score'], inplace=True)
     assessments.drop(columns = ['is_banked', 'weight'], inplace=True)
-    assessments = assessments[assessments['date_submitted'] <= prediction_window]
+    if prediction_window:
+        assessments = assessments[assessments['date_submitted'] <= prediction_window]
     num_assessments = assessments.groupby(by = index_columns).count().reset_index()
     num_assessments.drop(columns = ['date_submitted','score','date','assessment_type'], inplace=True)
 
@@ -85,10 +97,9 @@ def load_OU_data(prediction_window = 120):
     
     # Rename columns
     new_cols = {'id_assessment':'assessments_completed',
-                'score':'average_score','date':'days_studied',
-                'id_site':'activities_completed','sum_click':'total_clicks'}
+                'score':'average_assessment_score','date':'days_studied',
+                'id_site':'activities_engaged','sum_click':'total_clicks'}
     full_registrations = full_registrations.rename(columns = new_cols)
-    full_registrations['code_module'] = LabelEncoder().fit_transform(full_registrations['code_module'])
 
     return full_registrations
     
@@ -100,18 +111,17 @@ class CourseScaler(TransformerMixin, BaseEstimator):
     .transform(X) transforms X if fit.
     .fit_transform(X)
     """
-    def __init__(self):
+    def __init__(self, drop_course=True):
+        self.drop_course = drop_course
         pass
     
     def fit(self,X,y=None):
         import pandas as pd
-        self.cols = X.select_dtypes(include='number').columns
+        self.cols = ['days_studied','activities_engaged','total_clicks',\
+                     'assessments_completed','average_assessment_score']
         if len(self.cols) == 0:
             print('No columns to standardize')
-            return None
-        elif 'code_module' not in X.columns:
-            print('column "code_module" not found')
-            return None
+            return self
         else:
             modules = X['code_module'].unique()
             self.means = pd.DataFrame(index = modules, columns = self.cols)
@@ -128,8 +138,8 @@ class CourseScaler(TransformerMixin, BaseEstimator):
     def transform(self,X,y=None):
         import pandas as pd
         if not hasattr(self,'means'):
-            print('Not yet fit')
-            return None
+            print('WARNING: transformer Not yet fit')
+            return self
         else:
             i = X.index
             X.reset_index(drop = True, inplace = True)
@@ -143,7 +153,8 @@ class CourseScaler(TransformerMixin, BaseEstimator):
                 scaled_X = pd.concat([scaled_X,course_X], axis = 0)
             scaled_X.sort_index(inplace = True)
             scaled_X.index = i
-            scaled_X = scaled_X.drop('code_module',axis=1)
+            if self.drop_course:
+                scaled_X.drop('code_module', axis = 1, inplace = True)
             return scaled_X
 
     
