@@ -118,7 +118,7 @@ class CourseScaler(TransformerMixin, BaseEstimator):
     def fit(self,X,y=None):
         import pandas as pd
         self.cols = ['days_studied','activities_engaged','total_clicks',\
-                     'assessments_completed','average_assessment_score']
+                     'assessments_completed','average_assessment_score','num_of_prev_attempts']
         if len(self.cols) == 0:
             print('No columns to standardize')
             return self
@@ -153,14 +153,19 @@ class CourseScaler(TransformerMixin, BaseEstimator):
                 scaled_X = pd.concat([scaled_X,course_X], axis = 0)
             scaled_X.sort_index(inplace = True)
             scaled_X.index = i
+            scaled_X.fillna(value = 0, inplace = True)
             if self.drop_course:
                 scaled_X.drop('code_module', axis = 1, inplace = True)
             return scaled_X
 
     
-def fail_recall(y_true,y_pred):
-    from sklearn.metrics import recall_score
+def pass_f1(y_true,y_pred):
+    from sklearn.metrics import f1_score
     """
+    ***
+    Borrowed with Gratitude from Kev1n91 and Paddy at:
+    https://stackoverflow.com/questions/43547402/how-to-calculate-f1-macro-in-keras
+    ***
     uses sklearn.metrics.recall_score() to return the recall score of
     non functioning wells.
     Takes single column array or dataframe of true labels
@@ -168,4 +173,68 @@ def fail_recall(y_true,y_pred):
     returns recall score of class 0.
     """
     
-    return recall_score(y_true,y_pred,average=None)[0]
+    return f1_score(y_true,y_pred,average=None)[0]
+
+def plot_confusion(y_true, y_pred, labels):
+    import seaborn as sns
+    from sklearn.metrics import confusion_matrix
+    sns.heatmap(pd.DataFrame(confusion_matrix(y_true, y_pred, normalize = 'true', 
+                                  labels = labels),
+                columns = labels, index = labels), annot = True, cmap = 'RdYlBu')
+    
+def make_gridpipe(basemodel, params=None, cv=3):
+    from sklearn.model_selection import GridSearchCV
+    from imblearn.pipeline import Pipeline
+    from imblearn.over_sampling import SMOTE
+    from src.functions import pass_f1
+    from sklearn.metrics import make_scorer
+    
+    pipe = Pipeline([('scaler', CourseScaler()),
+                       ('smoter',SMOTE(random_state=111)),
+                       ('model', basemodel)])
+    grid = GridSearchCV(pipe, params, scoring = make_scorer(pass_f1), cv=cv)
+    return grid
+
+def score_grid(grid,X_val,y_val, labels = None):
+    import seaborn as sns
+    from src.functions import plot_confusion
+    score = grid.best_score_
+    model = grid.best_estimator_
+    y_pred = model.predict(X_val)
+    print('cross validated F1 score for "Pass" class:')
+    print(score)
+    plot_confusion(y_val, y_pred, labels=labels)
+    return model
+
+from keras import backend as K
+
+def f1(y_true, y_pred):
+    def recall(y_true, y_pred):
+        """Recall metric.
+
+        Only computes a batch-wise average of recall.
+
+        Computes the recall, a metric for multi-label classification of
+        how many relevant items are selected.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+        recall = true_positives / (possible_positives + K.epsilon())
+        return recall
+
+    def precision(y_true, y_pred):
+        """Precision metric.
+
+        Only computes a batch-wise average of precision.
+
+        Computes the precision, a metric for multi-label classification of
+        how many selected items are relevant.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+        precision = true_positives / (predicted_positives + K.epsilon())
+        return precision
+    precision = precision(y_true, y_pred)
+    recall = recall(y_true, y_pred)
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+
