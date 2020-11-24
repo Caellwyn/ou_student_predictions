@@ -265,6 +265,8 @@ def course_cross_validate(estimator,X,y,scoring='accuracy', cv=5, random_state =
     else: 
         kf = cv
     scores = []
+    y = np.array(y)
+
     for train_index, test_index in kf.split(X):
         X_train, X_test = X.iloc[train_index,:], X.iloc[test_index,:]
         y_train, y_test = y[train_index], y[test_index]
@@ -443,7 +445,7 @@ def dist_by_course(regs, column):
     sns.kdeplot(data=regs, x=column, hue='code_module', common_norm = False,
                  palette='husl').set_title(f'Comparative Distribution of {column} Between Courses')
     
-def registration_correlations(save_path = None, columns = None, prediction_window=None, 
+def registration_correlations(df=None, save_path = None, columns = None, prediction_window=None, 
                               scaled=False, cmap='coolwarm'):
     """
     registration_correlations(save_path = None, columns = None, prediction_window=None, 
@@ -458,32 +460,39 @@ def registration_correlations(save_path = None, columns = None, prediction_windo
     scaled: (boolean) whether to use CourseScaler to scale data by course.
     cmap: (default is 'coolwarm') colormap for plotted correlations
     """
-    
-    df = load_OU_data(prediction_window=prediction_window)
-    df.loc[df['final_result'] == 'Withdrawn', 'final_result'] = 0
-    df.loc[df['final_result'] == 'Fail', 'final_result'] = 1
-    df.loc[df['final_result'] == 'Pass', 'final_result'] = 2
-    df.loc[df['final_result'] == 'Distinction', 'final_result'] = 3
-    
-    df.loc[df['age_band'] == '0-35', 'age_band'] = 0
-    df.loc[df['age_band'] == '35-55', 'age_band'] = 1
-    df.loc[df['age_band'] == '55<=', 'age_band'] = 2
+    import matplotlib.pyplot as plt
+    from dython.nominal import associations
+    if type(df) == type(None):
+        df = load_OU_data(prediction_window=prediction_window)
+    if 'final_result' in df.columns:
+        df.loc[df['final_result'] == 'Withdrawn', 'final_result'] = 0
+        df.loc[df['final_result'] == 'Fail', 'final_result'] = 1
+        df.loc[df['final_result'] == 'Pass', 'final_result'] = 2
+        df.loc[df['final_result'] == 'Distinction', 'final_result'] = 3
+    if 'age_band' in df.columns:
+        df.loc[df['age_band'] == '0-35', 'age_band'] = 0
+        df.loc[df['age_band'] == '35-55', 'age_band'] = 1
+        df.loc[df['age_band'] == '55<=', 'age_band'] = 2
     
     to_drop = ['code_presentation','id_student','module_presentation_length']
     if prediction_window == None:
         to_drop.append('date_unregistration')
-    variables = df.drop(columns = to_drop)
+    for column in to_drop:
+        if column in df.columns:
+            df = df.drop(column, axis = 1)
     if scaled:
-        cs = CourseScaler(drop_course=drop_course)
-        variables = cs.fit_transform(variables)
-    variables['code_module'] = variables['code_module'].astype('str')
+        if 'code_module' in df.columns:
+            cs = CourseScaler()
+            df = cs.fit_transform(df)
+        else:
+            print('cannot scale, code_module not found in columns')
     if type(columns) == list:
-        variables = variables[columns]
-    fig, ax = plt.subplots(1,1, figsize = (len(variables.columns)*2**1.2, 
-                                           len(variables.columns)*1.5**1.2))
-    fig.suptitle('Variable Correlations', fontsize = len(variables.columns)*2+5)
+        df = df[columns]
+    fig, ax = plt.subplots(1,1, figsize = (len(df.columns)*2**1.2, 
+                                           len(df.columns)*1.5**1.2))
+    fig.suptitle('Variable Correlations', fontsize = len(df.columns)*2+5)
        
-    associations(variables, ax=ax, mark_columns=False, cmap = cmap)
+    associations(df, ax=ax, mark_columns=False, cmap = cmap)
     if type(save_path) == str:
         fig.savefig(save_path, dpi=250)
     plt.show()
