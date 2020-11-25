@@ -84,9 +84,10 @@ def load_OU_data(prediction_window = None):
     clicks = vle.groupby(by=index_columns).sum().reset_index()
     clicks = clicks.drop(columns=['id_site','date'])
 
-    full_registrations = pd.merge(full_registrations, days_studied, on=index_columns)
-    full_registrations = pd.merge(full_registrations, total_activities, on=index_columns)
-    full_registrations = pd.merge(full_registrations, clicks, on=index_columns)
+    full_registrations = pd.merge(full_registrations, days_studied, on=index_columns, how='left')
+    full_registrations = pd.merge(full_registrations, total_activities, on=index_columns, how='left')
+    full_registrations = pd.merge(full_registrations, clicks, on=index_columns, how='left')
+    
 
     # Assessments
     assessments = pd.merge(student_assessments, assessments_info, how='left', on='id_assessment')
@@ -100,8 +101,9 @@ def load_OU_data(prediction_window = None):
     avg_score = assessments.groupby(by = index_columns).mean().reset_index()
     avg_score.drop(columns = ['date_submitted','id_assessment','date'], inplace=True)
 
-    full_registrations = pd.merge(full_registrations, num_assessments, on=index_columns)
-    full_registrations = pd.merge(full_registrations, avg_score, on=index_columns)
+    full_registrations = pd.merge(full_registrations, num_assessments, on=index_columns, how='left')
+    full_registrations = pd.merge(full_registrations, avg_score, on=index_columns, how='left')
+    full_registrations = full_registrations.fillna(value=0)
     
     # Rename columns
     new_cols = {'id_assessment':'assessments_completed',
@@ -384,7 +386,7 @@ def plot_confusion(y_true, y_pred, encoder=None, labels = None, ax=None, cmap='G
     matrix = heatmap(confusion_matrix(y_true, y_pred, normalize = 'true', labels = labels), 
                     annot = True, cmap = cmap, xticklabels = labels, yticklabels = labels, ax=ax)
     if save_path:
-        savefig(save_path)
+        savefig(save_path, dpi=250)
     return matrix
     
 def score_grid(grid,X_val,y_val, labels = None, save_path=None, cmap='Greens'):
