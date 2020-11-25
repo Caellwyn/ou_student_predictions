@@ -29,7 +29,9 @@ image by Goran Ivos, courtesty of [Unsplash](https://unsplash.com/)
 
 Online learning has been a growing and maturing industry for years now, and in a way the internet has always been about learning.  [Khan Academy](https://www.khanacademy.org/) is, to me, a quintessential step in self-driven learning and massive open online courses (MOOCs) like [Coursera](https://www.coursera.org/) create an even more structured approach to online, self-drive learning.  I took my first online course on coding fundamentals from [edX](https://www.edx.org/) in 2013.
 
-While these are an amazing resource, they also have a high dropout and failure rate.  Many of us, accustomed to the accountability features in traditional face-to-face learning, struggle with the open-ness of these systems and the lack of a person keeping us accountable.  It can be easy to fall through the cracks and fade away.
+Many universities are also using online classes to improve access to education.  In 2018 35.3% of students enrolled at accredited post-secondary schools took at least one online class and 16.6% took only online courses.<sup>1</sup>
+
+While these are an amazing resource, they also have a high dropout and failure rate.  Many of us, accustomed to the accountability features in traditional face-to-face learning, struggle with the open-ness of these systems and the lack of a person keeping us accountable.  It can be easy to fall through the cracks and fade away. Online courses at universities have a 10-20% higher dropout rate and other online courses, such as MOOCs have between 40 and 80% dropout rates<sup>2</sup>
 
 I set out to find ways to use data to help online courses improve student success by identifying students who are in danger of failing or withdrawing early.  My theory is that students in need of special intervention to improve their chances of success can be identified by the way they interact with the online learning system itself.  
 
@@ -171,13 +173,19 @@ This model can be useful in flagging students for intervention in online courses
 I built an eXtreme Gradient Boosted tree-based model that can, at the halfway point of an online course, determine with almost 80% accuracy who does or does not need additional intervention to pass.  I worked to make the model generalizable to new data from new courses and new learning systems by scaling data by course and removing course-based bias from the training data.  This can be useful to online education organizations to automatically flag students needing additional help or intervention.
 
 # Next Steps:
-1. There are many more model types I can try with this data.  I could use an SVM to attempt to draw a hyperplane to divide my datapoints into the two classes, or I could use deep learning networks to take a more abstract approach to solving the problem.  
+1. There are many more model types I can try with this data.  For example: I could use an SVM to attempt to draw a hyperplane to divide my datapoints into the two classes, or I could use deep learning networks to take a more abstract approach to solving the problem.  
 
 2. I could try larger prediction window and focus more on failing students than withdrawing ones, or a smaller prediction window.
 
 3. I would love to try this model and preprocessing routine out on new datasets to see how well it generalizes.
 
-4. I could try removing some of the outliers.
+4. I could try removing some of the outliers or scaling my data in different ways.
 
 5. Finally, I could dig deeper into the errors my model is making to see if I can see what trips it up. what are the commonalities among students that are misclassified
+
+# References: 
+Data Sourcing: National Institude of Health, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5704676/
+<sup>1</sup> https://nces.ed.gov/fastfacts/display.asp?id=80
+<sup>2</sup> https://journals.sagepub.com/doi/pdf/10.1177/2158244015621777#:~:text=Online%20courses%20have%20a%2010,Smith%2C%202010)
+
 
