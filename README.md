@@ -131,4 +131,53 @@ I've discussed some of the preparation I did, but here is a more comprehensive d
 
 6. Finally, of course I split the data into training data and testing data to validate my models and identify and prevent overfitting.
 
+# Model Development
+
+### Custom Tools
+
+My preprocessing needs are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  Because of this I had to code my own versios of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE sampler to balance the classes in only the training set.  Once I had these coded my model development could proceed.
+
+### Logistic Regression
+
+I used a logistic regression model for a baseline model.  A true baseline would be a random guessing model with a 50% accuracy, but an untuned logistic regression model was already able to achieve a 76.7% accuracy on both average cross-validation scores and the validation set.  A logistic regresson model seeks the best fit line to model the linear relationship between the predictor variables, X, and the target variable, y, which is a linear regression. It then applies a sigmoid function to that line to assign probabilities that each observation belongs in one class or the other.  For my purposes, if the probability of an observation belonging a class is greater than .5, then I will predict that it belongs to that class.  I used my custom cross_validate function to remove the course bias while preventing overfitting.
+
+Using the custom gridsearch tool to optimize the model's regularization hyperparameters only resulted in a .001% gain in accuracy, probably due to the fact that the model was not suffering from overfitting in the first place.
+
+### Decision Tree
+
+The logistic regression model was pretty successful, but I thought, perhaps the problem was not as linear as that model likes.  A decision tree is a promising candidate for this problem because it does not assume the independence of the features or linear relationship between features and target. Instead it seeks to find the best way to divide and subdivide the data in a tree structure based on the values of different variables.  Once the tree is built, predictions are made by sending an observations down the tree on a path to the predicted class as it reaches each split in the tree is sent in one or the other direction.  You can think of it like a deterministic Pachinko machine!
+
+This model averaged 77% on cross-validation scores, but only 71% on the validation set.  Looking closer, there was more variance in the cross validation scores than with the logistic regression.  I thought it might be overfitting the data.
+
+### Random Forest
+
+This is an interesting extension to the decision tree model.  It creates a whole forest of decision trees and trains each one on a subset of the data and a subset of the features.  This is a technique called bagging, or [Boostrap AGGregation](https://machinelearningmastery.com/bagging-and-random-forest-ensemble-algorithms-for-machine-learning/) (check the link for more on this).  It works on the principle that a bunch of bad predictors, on average will be more accurate than one good predictor.  This worked for Francis Galton in [guessing the weight of an ox](https://crowdsourcingweek.com/blog/using-the-crowd-to-predict/), maybe it will work here!
+
+In fact, this bagging strategy reduced the overfitting problem, achieving a consisted 76-79% accuracy on cross-validation and the average cross-validation score and the accuracy on the validation set were 77.7% and 77.5% respectively.  This shows that while the bias is still a little high, we've corrected the overfitting that the decision tree was prone to.
+
+### Final Model: eXtreme Gradient Boosting
+
+XGBoost models have gained a lot of popularity recently and won a lot of Kaggle competitions.  It uses another popular idea called [boosting](https://en.wikipedia.org/wiki/Gradient_boosting).  That's a pretty involved wikipedia article, but the TLDR is that it's a similar ensemble method like random forest, but whereas random forest trains a bunch of trees in parallel and takes the aggregate of their predictions, boosting stacks the trees on top of each other and each one tries to improve on the one below it by predicting where the previous one made mistakes.  I think of it as like a line of poor students each grading the next one's paper, which is an analysis of the previous one's paper.  Each one gets a lot wrong, but something right so the right answers percolate through and some of the wrong answers get corrected at each step.
+
+![XGBoost Confusion Matrix](/figures/XGBoost79confmatrix.png)
+
+The XGBoost model outperformed the others with a 79% accuracy on both average validation scores and the test set.  It correctly identifies 75% of students who are on track to fail the course while only incorrectly flagging 19% of those who are on track to pass. The bias is lower than the others, and there is no overfitting.  This bodes well for predicting on new data.
+
+# Future deployment
+
+This model can be useful in flagging students for intervention in online courses.  However, preprocessing data is crucial.  In order to properly scale new data the CourseScaler transformer would need to be fitted on at least one entire course worth of data, or would at least need to be provided with the mean and standard deviation of each feature for that course.  It does not lend itself to web deployment, but could be integrated into the backend analytics of an online education provider to help target students for support.
+
+# Summary:
+I built an eXtreme Gradient Boosted tree-based model that can, at the halfway point of an online course, determine with almost 80% accuracy who does or does not need additional intervention to pass.  I worked to make the model generalizable to new data from new courses and new learning systems by scaling data by course and removing course-based bias from the training data.  This can be useful to online education organizations to automatically flag students needing additional help or intervention.
+
+# Next Steps:
+1. There are many more model types I can try with this data.  I could use an SVM to attempt to draw a hyperplane to divide my datapoints into the two classes, or I could use deep learning networks to take a more abstract approach to solving the problem.  
+
+2. I could try larger prediction window and focus more on failing students than withdrawing ones, or a smaller prediction window.
+
+3. I would love to try this model and preprocessing routine out on new datasets to see how well it generalizes.
+
+4. I could try removing some of the outliers.
+
+5. Finally, I could dig deeper into the errors my model is making to see if I can see what trips it up. what are the commonalities among students that are misclassified
 
