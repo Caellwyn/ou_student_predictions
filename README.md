@@ -184,7 +184,8 @@ I built an eXtreme Gradient Boosted tree-based model that can, at the halfway po
 5. Finally, I could dig deeper into the errors my model is making to see if I can see what trips it up. what are the commonalities among students that are misclassified
 
 # References: 
-Data Sourcing: National Institude of Health, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5704676/
+Data Sourcing: Kuzilek J., Hlosta M., Zdrahal Z. Open University Learning Analytics dataset Sci. Data 4:170171 doi: 10.1038/sdata.2017.171 (2017).
+
 <sup>1</sup> https://nces.ed.gov/fastfacts/display.asp?id=80
 <sup>2</sup> https://journals.sagepub.com/doi/pdf/10.1177/2158244015621777#:~:text=Online%20courses%20have%20a%2010,Smith%2C%202010)
 
