@@ -170,7 +170,7 @@ Different hyper parameters didn't make much difference to accuracy, except a pol
 
 XGBoost models have gained a lot of popularity recently and won a lot of Kaggle competitions.  It uses another popular idea called [boosting](https://en.wikipedia.org/wiki/Gradient_boosting).  That's a pretty involved wikipedia article, but the TLDR is that it's a ensemble method like random forest, but whereas random forest trains many trees in parallel and takes the aggregate of their predictions, boosting stacks the trees on top of each other.  Each one tries to improve on the one before it by predicting the previous one's mistakes.  I think of it as like a line of poor students each grading the last one's paper, which is an analysis of the previous one's paper, etc.  Each one gets a lot wrong, but something right so the right answers percolate forward and some of the wrong answers get corrected at each step.
 
-![XGBoost Confusion Matrix](/figures/XGBoost79confmatrix.png)
+![XGBoost Confusion Matrix](/figures/final_modelconfmatrix.png)
 
 The XGBoost model outperformed the others with a 79% accuracy on both average validation scores and the test set.  It correctly identifies 75% of students who are on track to fail the course while only incorrectly flagging 19% of those who are on track to pass. The bias is lower than the others, and there is no overfitting.  This bodes well for predicting on new data.
 
