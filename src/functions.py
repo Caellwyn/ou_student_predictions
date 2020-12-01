@@ -484,7 +484,7 @@ def registration_correlations(df=None, save_path = None, columns = None, predict
             df = df.drop(column, axis = 1)
     if scaled:
         if 'code_module' in df.columns:
-            cs = CourseScaler()
+            cs = CourseScaler(drop_course = False)
             df = cs.fit_transform(df)
         else:
             print('cannot scale, code_module not found in columns')
