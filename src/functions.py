@@ -152,10 +152,8 @@ class CourseScaler(TransformerMixin, BaseEstimator):
             for module in modules:
                 course_X = X[X['code_module'] == module]
                 for col in self.cols:
-                    mean = course_X[col].mean()
-                    std = course_X[col].std()
-                    self.means.loc[module, col] = mean
-                    self.stds.loc[module, col] = std
+                    self.means.loc[module, col] = course_X[col].mean()
+                    self.stds.loc[module, col] = course_X[col].std() + 1e-10
             return self
         
     def transform(self,X,y=None):
