@@ -352,8 +352,113 @@ class Course_GridSearchCV():
                 self.best_params_ = params
                 self.best_estimator_ = self.estimator
 
+def cross_val_presentation(model, df, scoring = 'accuracy', verbose = 0):
+    import pandas as pd
+    index = df.groupby(by=['code_module','code_presentation']).count().index
+    scores = pd.DataFrame(columns = ['score'], index = index)
+    for module in df['code_module'].unique():
+        df_course = df[df['code_module'] == module]
+        for presentation in df_course['code_presentation'].unique():
+            train = df[(df['code_module'] != module) | (df['code_presentation'] != presentation)]
+            test = df[(df['code_module'] == module) & (df['code_presentation'] == presentation)]
+            if module in train['code_module'].unique():
+                score = model_evaluate_presentation(model, train, test, scoring='accuracy')
+                scores.loc[(module,presentation), 'score'] = score
+                if verbose > 1:
+                    print((module,presentation))
+            else:
+                scores.loc[(module,presentation), 'score'] = np.nan
+    if verbose > 0:
+        display(scores.accuracy.mean())
+    return scores
     
+def model_evaluate_presentation(model, train, test, scoring='accuracy'):
+    from sklearn.metrics import accuracy_score, f1_score
     
+    X_train = train.drop(columns = ['final_result', 'code_presentation'])
+    y_train = train['final_result']
+    X_test = test.drop(columns = ['final_result', 'code_presentation'])
+    y_test = test['final_result']
+
+    transformed_big_data = process_courses(X_train, y_train, X_test, y_test)
+    X_train_transformed, y_train_transformed, X_test_transformed, y_test = transformed_big_data
+    model.fit(X_train_transformed, y_train_transformed)
+    y_pred = model.predict(X_test_transformed)
+    if scoring == 'accuracy':
+        return accuracy_score(y_test, y_pred)
+    if scoring == 'f1':
+        return f1_score(y_test, y_pred)
+    
+class GridSearchPresentationCV():
+    """
+    Course_GridSearchCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
+    ---
+    Grid search object using cross validation to find the best combination of parameters and keeping the best estimator and it's best cv scores and the mean of that list of cv scores.  It uses course_cross_validate to to cross validate each model using a custom and static pipeline to appropriately scale and smote each fold by course.
+    ---
+    estimator: an estimator with .fit(X,y) and .predict(X) methods.
+    params: a dictionary of estimator hyperparameters of the format {'parameter_name':string or list of parameter values}
+    cv: (optional) an int or cross validation generator object (like KFold), default = 5
+    scoring: (optional) either 'accuracy' or 'f1_score'. Default = 'accuracy'
+    verbose: (optional) if True, prints each attempted combination of parameter and their cross validation scores.
+    """
+    def __init__(self, estimator, params, scoring='accuracy', verbose = 0):
+        """
+        Course_GridSearchCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
+        ---
+        Grid search object using cross validation to find the best combination of parameters and keeping the best estimator and it's best cv scores and the mean of that list of cv scores.  It uses course_cross_validate to to cross validate each model using a custom and static pipeline to appropriately scale and smote each fold by course.
+        ---
+        estimator: an estimator with .fit(X,y) and .predict(X) methods.
+        params: a dictionary of estimator hyperparameters of the format {'parameter_name':string or list of parameter values}
+        cv: (optional) an int or cross validation generator object (like KFold), default = 5
+        scoring: (optional) either 'accuracy' or 'f1_score'. Default = 'accuracy'
+        verbose: (optional) if True, prints each attempted combination of parameter and their cross validation scores.
+        Attributes:
+           .estimator: base estimator
+           .paramgrid: an sklearn.model_selection.ParameterGrid object enumerating all combinations of the parameter dictionary passed into the params argument
+           .cv: int or cross validation split generator object
+           .scoring: string designating the scoring strategy
+           .verbose: flag determining whether progress is printed during fit
+           .best_cv_: the list of cross validation scores for the best combination of parameters
+           .best_score_: the mean of the best cross validation scores during the fit
+           .best_params_: the best parameters (by mean cross validation score)
+           .best_estimator_: the estimator set to the best parameters.
+        Methods:
+            .fit(X,y)
+                fits Course_GridSearchCV object on data using cross_validation to save the best set of parameters accoring to the mean of the cross validation scores.
+        
+        """
+        from sklearn.model_selection import ParameterGrid
+
+        self.estimator = estimator
+        self.paramgrid = ParameterGrid(params)
+        self.scoring = scoring
+        self.verbose = verbose
+    
+    def fit(self, df, show_progress = False):
+        """
+        .fit(X,y)
+        ---
+        fits Course_GridSearchCV object on data using cross_validation to save the best set of parameters accoring to the mean of the cross validation scores.
+        ---
+        X: pandas.DataFrame of features
+        y: array-like of labels
+        """
+        self.best_score_ = 0
+        for params in self.paramgrid:
+            if self.verbose:
+                print('trying:')
+                print(params)
+            self.estimator.set_params(**params)
+            scores = cross_val_presentation(self.estimator, df, scoring=self.scoring)
+            new_score = np.mean(scores.score)
+            if self.verbose == 1:
+                print('average score: ', new_score)
+            if new_score > self.best_score_:
+                self.best_cv_ = scores
+                self.best_score_ = new_score
+                self.best_params_ = params
+                self.best_estimator_ = self.estimator
+                
 def plot_confusion(y_true, y_pred, encoder=None, labels = None, ax=None, cmap='Greens', save_path = None):
     """
     plot_confusion(y_true, y_pred, encoder=None, labels = None, ax=None, cmap='RdYlBu', save_path = None)
@@ -387,8 +492,7 @@ def plot_confusion(y_true, y_pred, encoder=None, labels = None, ax=None, cmap='G
         savefig(save_path, dpi=250)
     return matrix
     
-def score_grid(grid,X_val,y_val, labels = None, save_path=None, cmap='Greens'):
-    from sklearn.metrics import accuracy_score
+def score_grid(grid,X_val,y_val, labels = None, save_path=None, cmap='Greens', scoring='accuracy'):
     """
     score_grid(grid,X_val,y_val, labels = None, save_path=None, cmap='Greens')
     ---
@@ -405,17 +509,22 @@ def score_grid(grid,X_val,y_val, labels = None, save_path=None, cmap='Greens'):
     """
     import seaborn as sns
     from src.functions import plot_confusion
+    from sklearn.metrics import accuracy_score, f1_score
+    from IPython.display import display
     score = grid.best_score_
     model = grid.best_estimator_
     print('best model')
     print(model)
     print('best cv')
-    print(grid.best_cv_)
+    display(grid.best_cv_)
     print('cross validated accuracy score:')
     print(score)
     y_pred = model.predict(X_val)
-    print('validation accuracy: ')
-    print(accuracy_score(y_val, y_pred))
+    print(f'validation {scoring}: ')
+    if scoring == 'accuracy':
+        print(accuracy_score(y_val, y_pred))
+    if scoring == 'f1':
+        print(f1_score(y_val, y_pred))
     print('validation set confusion matrix')
     plot_confusion(y_val, y_pred, labels=labels, save_path=save_path, cmap=cmap)
     return model
