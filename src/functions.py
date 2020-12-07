@@ -369,7 +369,7 @@ def cross_val_presentation(model, df, scoring = 'accuracy', verbose = 0):
             else:
                 scores.loc[(module,presentation), 'score'] = np.nan
     if verbose > 0:
-        display(scores.accuracy.mean())
+        display(scores.score.mean())
     return scores
     
 def model_evaluate_presentation(model, train, test, scoring='accuracy'):
@@ -387,7 +387,7 @@ def model_evaluate_presentation(model, train, test, scoring='accuracy'):
     if scoring == 'accuracy':
         return accuracy_score(y_test, y_pred)
     if scoring == 'f1':
-        return f1_score(y_test, y_pred)
+        return f1_score(y_test, y_pred, pos_label = 'Needs Intervention')
     
 class GridSearchPresentationCV():
     """
