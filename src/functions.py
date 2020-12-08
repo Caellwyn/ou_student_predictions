@@ -211,9 +211,12 @@ def smotecourses(X,y,drop_course=True):
         if len(course_df) > 0:
             course_X = course_df.drop(columns = ['label','code_module'])
             course_y = course_df['label']
+            columns = course_X.columns
             course_X, course_y = SMOTE(random_state=111).fit_resample(course_X,course_y)
             if not drop_course:
                 course_X['code_module'] = module
+            course_X = pd.DataFrame(course_X, columns = columns)
+            course_y = pd.Series(course_y)
             smoted_X = pd.concat([smoted_X, course_X], axis=0)
             smoted_y = pd.concat([smoted_y, course_y], axis=0)
     smoted_X.fillna(value = 0, inplace = True)
