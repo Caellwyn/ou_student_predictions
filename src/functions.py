@@ -145,8 +145,7 @@ class CourseScaler(TransformerMixin, BaseEstimator):
         X: the data to fit on.
         """
         import pandas as pd
-        self.cols = ['days_studied','activities_engaged','total_clicks',\
-                     'assessments_completed','average_assessment_score','num_of_prev_attempts']
+        self.cols = X.select_dtypes(include = 'number').columns
         if len(self.cols) == 0:
             print('No columns to standardize')
             return self
@@ -218,9 +217,9 @@ def smotecourses(X,y,drop_course=True):
             course_y = course_df['label']
             columns = course_X.columns
             course_X, course_y = SMOTE(random_state=111).fit_resample(course_X,course_y)
-            if not drop_course:
-                course_X['code_module'] = module
             course_X = pd.DataFrame(course_X, columns = columns)
+            if not drop_course:
+                course_X['code_module'] = module            
             course_y = pd.Series(course_y)
             smoted_X = pd.concat([smoted_X, course_X], axis=0)
             smoted_y = pd.concat([smoted_y, course_y], axis=0)
@@ -562,7 +561,7 @@ def dist_by_course(regs, column):
     sns.kdeplot(data=regs, x=column, hue='code_module', common_norm = False,
                  palette='husl').set_title(f'Comparative Distribution of {column} Between Courses')
     
-def registration_correlations(df=None, save_path = None, columns = None, prediction_window=None, 
+def registration_correlations(passed_df=None, save_path = None, columns = None, prediction_window=None, 
                               scaled=False, cmap='coolwarm'):
     """
     registration_correlations(save_path = None, columns = None, prediction_window=None, 
@@ -579,8 +578,9 @@ def registration_correlations(df=None, save_path = None, columns = None, predict
     """
     import matplotlib.pyplot as plt
     from dython.nominal import associations
-    if type(df) == type(None):
+    if type(passed_df) == type(None):
         df = load_OU_data(prediction_window=prediction_window)
+    else: df = passed_df.copy()
     if 'final_result' in df.columns:
         df.loc[df['final_result'] == 'Withdrawn', 'final_result'] = 0
         df.loc[df['final_result'] == 'Fail', 'final_result'] = 1
