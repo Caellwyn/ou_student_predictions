@@ -28,7 +28,7 @@ def load_OU_data(prediction_window = None):
     import pandas as pd
     import numpy as np
     import zipfile
-
+    
     # import data
     zf = zipfile.ZipFile('../content/anonymisedData.zip') 
 
@@ -41,15 +41,14 @@ def load_OU_data(prediction_window = None):
     assessments_info = pd.read_csv(zf.open('assessments.csv'))
 
     index_columns = ['code_module','code_presentation','id_student']
-    
     # Registrations
     full_registrations = pd.merge(students, registrations, on=index_columns, validate='1:1')
     full_registrations = pd.merge(full_registrations, courseInfo, \
-                             on=['code_module','code_presentation'], validate='many_to_one')
+                         on=['code_module','code_presentation'], validate='many_to_one')
     full_registrations.dropna(subset=['date_registration','imd_band'], inplace=True)
 
     not_withdrawn = full_registrations['date_unregistration'].isna()
-    
+
     if type(prediction_window) == float:
         prediction_window = prediction_window*(full_registrations.module_presentation_length.min())
     if prediction_window:
@@ -60,9 +59,9 @@ def load_OU_data(prediction_window = None):
                                     & (full_registrations['date_unregistration'] > 0)
     full_registrations = full_registrations[not_withdrawn | withdrawn_after_predict]
     full_registrations['date_unregistration'].fillna( \
-        full_registrations['module_presentation_length'], inplace = True)
+    full_registrations['module_presentation_length'], inplace = True)
     full_registrations = full_registrations[full_registrations['date_unregistration']
-                                            <= full_registrations['module_presentation_length']]
+                                        <= full_registrations['module_presentation_length']]
     if prediction_window:
         full_registrations.drop(columns=['date_unregistration'], inplace=True)
 
@@ -70,9 +69,9 @@ def load_OU_data(prediction_window = None):
     if prediction_window:
         student_vle = student_vle[student_vle.date <= prediction_window]
     vle = pd.merge(student_vle,vle_info, 
-                   how = 'left', \
-                   on =['id_site','code_module', 'code_presentation'], \
-                   validate = 'm:1').drop(columns = ['week_from','week_to'])
+               how = 'left', \
+               on =['id_site','code_module', 'code_presentation'], \
+               validate = 'm:1').drop(columns = ['week_from','week_to'])
 
     total_activities = vle.groupby(by=index_columns).count().reset_index()
     total_activities = total_activities.drop(columns=['date','sum_click','activity_type'])
@@ -87,7 +86,7 @@ def load_OU_data(prediction_window = None):
     full_registrations = pd.merge(full_registrations, days_studied, on=index_columns, how='left')
     full_registrations = pd.merge(full_registrations, total_activities, on=index_columns, how='left')
     full_registrations = pd.merge(full_registrations, clicks, on=index_columns, how='left')
-    
+
 
     # Assessments
     assessments = pd.merge(student_assessments, assessments_info, how='left', on='id_assessment')
@@ -96,19 +95,25 @@ def load_OU_data(prediction_window = None):
     if prediction_window:
         assessments = assessments[assessments['date_submitted'] <= prediction_window]
     num_assessments = assessments.groupby(by = index_columns).count().reset_index()
-    num_assessments.drop(columns = ['date_submitted','score','date','assessment_type'], inplace=True)
-
+    total_assessments = assessments_info.groupby(by=['code_module','code_presentation']).count().reset_index()
+    total_assessments = total_assessments.drop(columns = ['assessment_type','date','weight'])
+    total_assessments = total_assessments.rename(columns = {'id_assessment':'total_assessments'})
+    num_assessments = pd.merge(num_assessments, total_assessments, 
+                           how = 'left', on = ['code_module','code_presentation'])
+    num_assessments['id_assessment'] = num_assessments['id_assessment']/num_assessments['total_assessments']
+    num_assessments.drop(columns = ['total_assessments','date_submitted','score','date','assessment_type'], inplace=True)
+    num_assessments
     avg_score = assessments.groupby(by = index_columns).mean().reset_index()
     avg_score.drop(columns = ['date_submitted','id_assessment','date'], inplace=True)
 
     full_registrations = pd.merge(full_registrations, num_assessments, on=index_columns, how='left')
     full_registrations = pd.merge(full_registrations, avg_score, on=index_columns, how='left')
     full_registrations = full_registrations.fillna(value=0)
-    
+
     # Rename columns
     new_cols = {'id_assessment':'assessments_completed',
-                'score':'average_assessment_score','date':'days_studied',
-                'id_site':'activities_engaged','sum_click':'total_clicks'}
+            'score':'average_assessment_score','date':'days_studied',
+            'id_site':'activities_engaged','sum_click':'total_clicks'}
     full_registrations = full_registrations.rename(columns = new_cols)
 
     return full_registrations
