@@ -4,8 +4,6 @@
 
 [Exploratory Data Analysis](notebooks/OU_eda.ipynb)
 
-[First Simple Model](notebooks/FSM.ipynb)
-
 [Model Development](notebooks/shallow_modeling.ipynb)
 
 [Data](content/anonymisedData.zip)
@@ -27,15 +25,22 @@
 Image by Goran Ivos, courtesy of [Unsplash](https://unsplash.com/)
 
 
-Online learning has been a growing and maturing industry for years now, and in a way the internet has always been about learning.  [Khan Academy](https://www.khanacademy.org/) is, to me, a quintessential step in self-driven learning and massive open online courses (MOOCs) like [Coursera](https://www.coursera.org/) create an even more structured approach to online, self-drive learning.  I took my first online course on coding fundamentals from [edX](https://www.edx.org/) in 2013.
+# Introduction:
 
-Many universities are also using online classes to improve access to education.  In 2018 35.3% of students enrolled at accredited post-secondary schools took at least one online class and 16.6% took only online courses.<sup>1</sup>
+![empty computer](../figures/goran-ivos-empty-computer-unsplash.jpg)
 
-While these are an amazing resource, they also have a high dropout and failure rate.  Many of us, accustomed to the accountability features in traditional face-to-face learning, struggle with the open-ness of these systems and the lack of a person keeping us accountable.  It can be easy to fall through the cracks and fade away. Online courses at universities have a 10-20% higher dropout rate and other online courses, such as MOOCs have between 40 and 80% dropout rates<sup>2</sup>
+## The Problem
+Online learning has been a growing and maturing industry for years now, and in a way, the internet has always been about learning.  [Khan Academy](https://www.khanacademy.org/) was, to me, a quintessential step in self-driven learning and massive open online courses (MOOCs) like [Coursera](https://www.coursera.org/) create an even more structured approaches to online, self-driven learning.  I took my first online course on coding fundamentals from [edX](https://www.edx.org/) in 2013 and started my data science journey in 2019 on Coursera.
 
-I set out to find ways to use data to help online courses improve student success by identifying students who are in danger of failing or withdrawing early.  My theory is that students in need of special intervention to improve their chances of success can be identified by the way they interact with the online learning system itself.  
+While these are an amazing resources, they also have high dropout and failure rates.  Many students, accustomed to the accountability features in traditional face-to-face learning, struggle with the openness of these systems and the lack accountability.  In self-driven learning, it can be easy to get lost or give up.
 
-This project seeks to create a model of student interactions with self-paced learning modules that can predict student outcomes after the first half of the course.  My goal is to make this model generalizable by removing correlations with specific courses and instead capturing the underlying functions that can predict the success of students in any self-paced online learning environment.  I realize this is a lofty goal, but I believe it is possible to do to some extent. I believe that many students who are struggling will exhibit particular patterns of behavior in how they interact with the learning environment.
+## The Solution
+
+I set out to find ways to use data to help students succeed by identifying those who are in danger of failing or withdrawing early.  Many students in need of special intervention to improve their chances of success can be identified by the way they interact with the online learning system itself.  
+
+The goal of this project is to model student interactions with an online learning environment to predict whether they will ultimately pass or fail a course early enouth for intervention to be effective.  My model captures the underlying patterns of behavior that predict the success of students in any self-paced online learning environment.
+
+In order to simulate this kind of prediction, I fit a model on chronologically earlier cohorts of students, their behavior and outcomes, and then validate my model on the latest cohorts present in the dataset.
 
 # The Data
 I used a dataset from [Open University](http://www.openuniversity.edu/) based out of Great Britain.  They are an entirely online university offering accredited degrees to distance learners.  They released anonymized data from seven courses, three from the social sciences and four STEM courses, from the academic years 2012/2013 and 2013/2014.  These courses are repeated twice per year and each repetition is call a 'presentation'. Not all presentations of each course are included in the dataset.  To learn more about how the data was selected and anonymised, please visit this [US National Institute of Health](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5704676/) site that holds the data for scientific inquiry.
@@ -66,13 +71,9 @@ The next statistics I pulled to use to train my model were on assessments.
 *Assessment Statistics*
 
 1. Average assessment score
-2. Number of assessments completed.
+2. percentage of assessments completed.
 
 The first was an obvious choice, and the second is meaningful because these courses were in part self-paced.  I found that doing more assessments earlier was correlated to greater success, as you will see in the data exploration section later.
-
-*Course Repetition*
-
-The final statistic I took was the number of times the student had repeated the same course.  To be completely honest this is not data directly from interactions, and is meta-data.  However it should be available from any learning environement that tracks student histories across courses and is correlated to success.
 
 ## Correlations in the Data
 
@@ -104,16 +105,18 @@ In order to correct this problem, I took two steps:
 
 The data features and targets were then no longer correlated to the courses.  My model could focus on the behavior itself, relative to how other students are performing in the same course.
 
+The downside is that I cannot use presentations in the test set, the 2014J presentations, for testing if they are the only presentation available.  My preprocessing needs previous examples of a course in order to properly scale the features.  In other words I can't do predictions on courses that are being taught for the first time, or that I don't have historical data for.
+
 ![Normalized Correlations](/figures/scaled_smoted_coursecorrs.png)
 
 The above chart shows correlations between each variable my model uses for predictions, as well as course (`code_module`) and final_result.  If you look along the row for `code_module` you will see that, for the most part, the correlations between courses and features have been removed, and the correlation between courses and `final_result` has been completely removed.
 
 If you look down the final result row you can also see how strongly each of the aggregate features I extracted are to the final result.
 1. Days Studied: .35
-2. Activities Engaged: .33
+2. Activities Engaged: .31
 3. Total Clicks: .27
-4. Assessments Completed: .33
-5. Average Assessment Score: .43
+4. Assessments Completed: .36
+5. Average Assessment Score: .46
 
 I was very excited to see `days_studied` with such a high correlation.  My hypothesis from the start was that spreading learning out over more days would improve persistence and learning and I see validation here.  
 
@@ -128,11 +131,11 @@ I've discussed some of the preparation I did, but here is a more comprehensive d
 
 2. My data target classes are 'Distinction', 'Pass', 'Fail', and 'Withdrawn'.  However, my predictor only predicts whether a student needs intervention or not.  Those passing or passing with distinction do not need interventions, while those failing or withdrawing do.  I will combine the first two into a new class 'No Intervention' and the second two into 'Needs Intervention'.  This makes my target binary, easier to predict and easier to evaluate.
 
-3.  I split the data into training data and testing data to validate my models and identify and prevent overfitting.
+3. I split the data into training data and testing data to validate my models and identify and prevent overfitting.  Specifically I held all of the chronologically latest presentations, 2014J as a final test set and then used each presentation in befor that, in turn, as validation sets in my cross validation function.  My model was always being tested on a presentation of a course that it was not trained on.  I did this because that is the purpose of my model, to make predictions on a current cohort of students.  I want a model that can accurately predict for groups it has not yet seen.  If I were to randomly choose students across cohorts, or presentations, and then test on different students from the same cohorts it trained on, the model would suffer data leakage from variations between presentations.
 
-4. I will scale all the data course by course.  The CourseScaler class will fit on each individual course in the training set of observations, as indexed by the 'code_module' variable.  It will take the mean and standard deviation for each feature for each course from the training data and use these means and standard deviations to scale ((feature-mean)/standard deviation) features for both the training and the testing data.  This will remove the correlations between `code_module` and the activity and assessment statistics.
+4. I scaled all the data course by course.  The CourseScaler class will fit on each individual course in the training set of observations, as indexed by the 'code_module' variable.  It will take the mean and standard deviation for each feature for each course from the training data and use these means and standard deviations to scale ((feature-mean)/standard deviation) features for both the training and the testing data.  This will remove the as much correlation between `code_module` and the activity and assessment statistics as possible.
 
-5. I will use the smotecourses() function to apply [imblearn.over_sampling.SMOTE](https://imbalanced-learn.org/stable/generated/imblearn.over_sampling.SMOTE.html) to the training data and create synthetic data within the minority class to balance the classes.  Each course in the training set will then have equal number of students needing intervention and not needing interventions in the training data.  This will remove the correlation between `code_module` and `final_result`.  
+5. I used the smotecourses() function to apply [imblearn.over_sampling.SMOTE](https://imbalanced-learn.org/stable/generated/imblearn.over_sampling.SMOTE.html) to the training data and create synthetic data within the minority class to balance the classes.  Each course in the training set has equal number of students needing intervention and not needing interventions in the training data.  This will remove the correlation between `code_module` and `final_result` as much as possible.  
 
 6. Once those are done, I drop the `code_module` column because I don't want my model considering that in its predictions.
 
@@ -141,30 +144,29 @@ I've discussed some of the preparation I did, but here is a more comprehensive d
 
 ### Custom Tools
 
-The preprocessing needs for this project are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  Because of this I had to code my own versions of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE over-sampler to balance the classes in only the training set.  Once I had these coded, my model development could proceed.
+The preprocessing needs for this project are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  Because of this I had to code my own versions of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE over-sampler to balance the classes in only the training set.  I also needed custom gridsearch and cross-validation tools to properly apply the proprocessing to prevent data leakage and to cross-validate by presentation rather than by randomly sampled observations.  Once I had these coded, my model development could proceed.
 
 ### Logistic Regression
 
-I used a logistic regression model for a baseline model.  A true baseline would be a random guessing model with a 50% accuracy, but an untuned logistic regression model was already able to achieve a 76.7% accuracy on both average cross-validation scores and the validation set.  A logistic regresson model seeks the best fit line to model the linear relationship between the predictor variables, X, and the target variable, y, which is a linear regression. It then applies a sigmoid function to that line to assign probabilities that each observation belongs in one class or the other.  For my purposes, if the probability of an observation belonging a class is greater than .5, then I will predict that it belongs to that class.  I used my custom cross_validate function to remove the course bias while preventing overfitting.
+I used a logistic regression model for a baseline model.  A logistic regresson model seeks the best fit line to model the linear relationship between the predictor variables, X, and the target variable, y, which is a linear regression. It then applies a sigmoid function to that line to assign probabilities that each observation belongs in one class or the other.  For my purposes, if the probability of an observation belonging a class is greater than .5, then I will predict that it belongs to that class.  A true baseline would be a randomly guessing model with an accuracy equal to the rate of class imbalance, or, in this case, about 34%.  My hyperparameter-tuned logistic regression model was able to achieve a 74% accuracy on the 2014J presentations and 79% average cross-validation scores.  All of my models performed better on cross-validation than on the 2014J presentation hold-out set.  The accuracy across folds was also large, rangining from 70% to %80.  Module GGG, presentation 2013J also gave my models trouble.  
 
-Using the custom gridsearch tool to optimize the model's regularization hyperparameters only resulted in a .001% gain in accuracy, probably due to the fact that the model was not suffering from overfitting in the first place.
+### K-Nearest Neighbors
+
+A KNN model uses a tuneable distance metric to determine the distance between observations in n-dimensional space, where n is the number of independent variable features in the training set.  The new observation is classified according to the classes of the K (a tuneable hyper-parameter) nearest training observations.  This classification technique hypothesizes that observations of the same class will cluster together in the n-dimensional space.
+
+My KNN model, after hyperparameter tuning, achieved almost identical results as the logistic regression model.  One benefit of both models, however, is that they train and predict quite quickly.  KNN is a great model to use when you have a low number of features because when classes do cluster together, they do so more tightly in lower dimensional space.
 
 ### Decision Tree
 
-The logistic regression model was pretty successful, but I thought, perhaps the problem was not as linear as that model likes.  A decision tree is a promising candidate for this problem because it does not assume the independence of the features or linear relationship between features and target. Instead it seeks to find the best way to divide and subdivide the data in a tree structure based on the values of different variables.  Once the tree is built, predictions are made by sending an observations down the tree on a path to the predicted class as it reaches each split in the tree is sent in one or the other direction.  You can think of it like a deterministic Pachinko machine!
+The logistic regression model was pretty successful, being twice as accurate as random guessing, but I thought perhaps the problem was not as linear as that model likes.  A decision tree is a promising candidate for a less linear relationship between independent and dependent variables because it does not assume the independence of the features or linear relationship between features and target. Instead it seeks to find the best way to divide and subdivide the data in a tree structure based on the values of different variables.  Once the tree is built, predictions are made by sending an observations down the tree on a path to the predicted class as it reaches each split in the tree is sent in one or the other direction.  You can think of it like a deterministic Pachinko machine.
 
-This model averaged 77% on cross-validation scores, but only 71% on the validation set.  Looking closer, there was more variance in the cross validation scores than with the logistic regression.  I thought it might be overfitting the data.  When I trained it on the entire dataset it was less overfit and scores about 74% on both.
+This model averaged 77% on cross-validation scores, and 73% on the validation set.  Apparently linearity of relationships between the variables is not the only hurdle to overcome in modeling student success.
 
 ### Random Forest
 
 This is an interesting extension to the decision tree model.  It creates a whole forest of decision trees and trains each one on a subset of the data and a subset of the features.  This is a technique called bagging, or [Boostrap AGGregation](https://machinelearningmastery.com/bagging-and-random-forest-ensemble-algorithms-for-machine-learning/) (check the link for more on this).  It works on the principle that a bunch of bad predictors, on average will be more accurate than one good predictor.  This worked for Francis Galton in [guessing the weight of an ox](https://crowdsourcingweek.com/blog/using-the-crowd-to-predict/), maybe it will work here!
 
-In fact, this bagging strategy reduced the overfitting problem, achieving between 76-79% accuracy on cross-validation folds. The average cross-validation score and the accuracy on the validation set were 77.7% and 77.5% respectively.  This shows that while the bias is still a little high, we've corrected the overfitting that the decision tree was prone to.
-
-### SVM Evaluation
-The SVM performed quite well.  It scored an overall accuracy of 77% with slight prediction bias toward 'No Intervention', in line with the other models.  
-
-Different hyper parameters didn't make much difference to accuracy, except a polynomial kernel (degree 3) over predicted student success.  This would be the way to go if interventions are particularly costly.  If you biased the predictions that much toward 'No Intervention', you could be fairly certain that the students receiving interventions really need them.  The same results could also be achieved with the logistic regression model by setting the decision point of the sigmoid function toward the passing class, biasing the model.
+In fact, this bagging strategy performed a little better than the single decision tree.  It showed a 78% accuracy across training folds and 74% on the testing presentations.  Specifically it was a little more accurate in predicting which students needed intervention (71% vs 69%).
 
 ### Final Model: eXtreme Gradient Boosting
 
@@ -172,7 +174,7 @@ XGBoost models have gained a lot of popularity recently and won a lot of Kaggle 
 
 ![XGBoost Confusion Matrix](/figures/final_modelconfmatrix.png)
 
-The XGBoost model outperformed the others with a 79% accuracy on both average validation scores and the test set.  It correctly identifies 75% of students who are on track to fail the course while only incorrectly flagging 19% of those who are on track to pass. The bias is lower than the others, and there is no overfitting.  This bodes well for predicting on new data.
+The XGBoost model outperformed the others with a 79% average accuracy across validation presentations and 75% on the test presentations.  It correctly identifies 768% of students who are on track to fail the course while only incorrectly flagging 22% of those who are on track to pass for intervention.
 
 ### Patterns in the Predictions
 
