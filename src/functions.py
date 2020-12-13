@@ -613,3 +613,25 @@ def registration_correlations(passed_df=None, save_path = None, columns = None, 
     if type(save_path) == str:
         fig.savefig(save_path, dpi=250)
     plt.show()
+    
+def graph_model_history(history):
+    """
+    Takes as argument a model history: either the return of a KerasClassifier or the model.history of a Keras model.
+    Plots model accuracy, validation accuracy, model loss, and validation loss training histories, if they are present in the history.history dictionary object:
+    """
+        
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1,2, figsize = (10,5))
+    if 'acc' in history.history.keys():
+        axes[0].plot(history.history['acc'], label = 'Train Accuracy')
+    if 'val_acc' in history.history.keys():
+        axes[0].plot(history.history['val_acc'], label = 'Validation Accuracy')
+    axes[0].legend()
+    if 'loss' in history.history.keys():
+        axes[1].plot(history.history['loss'], label = 'Train Loss')
+    if 'val_loss' in history.history.keys():
+        axes[1].plot(history.history['val_loss'], label = 'Validation Loss')
+    axes[1].legend()
+    plt.show()
