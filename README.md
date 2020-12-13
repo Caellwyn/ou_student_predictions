@@ -19,15 +19,11 @@
 [Report Notebook](report/report_notebook.ipynb)
 
 
-# The Problem
-
 ![empty computer](figures/goran-ivos-empty-computer-unsplash.jpg)
 Image by Goran Ivos, courtesy of [Unsplash](https://unsplash.com/)
 
 
 # Introduction:
-
-![empty computer](../figures/goran-ivos-empty-computer-unsplash.jpg)
 
 ## The Problem
 Online learning has been a growing and maturing industry for years now, and in a way, the internet has always been about learning.  [Khan Academy](https://www.khanacademy.org/) was, to me, a quintessential step in self-driven learning and massive open online courses (MOOCs) like [Coursera](https://www.coursera.org/) create an even more structured approaches to online, self-driven learning.  I took my first online course on coding fundamentals from [edX](https://www.edx.org/) in 2013 and started my data science journey in 2019 on Coursera.
@@ -144,11 +140,11 @@ I've discussed some of the preparation I did, but here is a more comprehensive d
 
 ### Custom Tools
 
-The preprocessing needs for this project are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  Because of this I had to code my own versions of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE over-sampler to balance the classes in only the training set.  I also needed custom gridsearch and cross-validation tools to properly apply the proprocessing to prevent data leakage and to cross-validate by presentation rather than by randomly sampled observations.  Once I had these coded, my model development could proceed.
+The preprocessing needs for this project are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  I also wanted to cross-validate by presentation rather than by randomly assembled folds.  Because of this I had to code my own versions of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE over-sampler to balance the classes in only the training set.  I also needed custom gridsearch and cross-validation tools to properly apply the proprocessing to prevent data leakage and to cross-validate by presentation rather than by randomly sampled observations.  Once I had these coded, my model development could proceed.
 
 ### Logistic Regression
 
-I used a logistic regression model for a baseline model.  A logistic regresson model seeks the best fit line to model the linear relationship between the predictor variables, X, and the target variable, y, which is a linear regression. It then applies a sigmoid function to that line to assign probabilities that each observation belongs in one class or the other.  For my purposes, if the probability of an observation belonging a class is greater than .5, then I will predict that it belongs to that class.  A true baseline would be a randomly guessing model with an accuracy equal to the rate of class imbalance, or, in this case, about 34%.  My hyperparameter-tuned logistic regression model was able to achieve a 74% accuracy on the 2014J presentations and 79% average cross-validation scores.  All of my models performed better on cross-validation than on the 2014J presentation hold-out set.  The accuracy across folds was also large, rangining from 70% to %80.  Module GGG, presentation 2013J also gave my models trouble.  
+I used a logistic regression model for a baseline model.  A logistic regresson model seeks the best fit line to model the linear relationship between the predictor variables, X, and the target variable, y, which is a linear regression. It then applies a sigmoid function to that line to assign probabilities that each observation belongs in one class or the other.  For my purposes, if the probability of an observation belonging a class is greater than .5, then I will predict that it belongs to that class.  A true baseline would be a randomly guessing model with an accuracy equal to the rate of class imbalance, or, in this case, about 34%.  My hyperparameter-tuned logistic regression model was able to achieve a 74% accuracy on the 2014J presentations and 79% average cross-validation scores.  
 
 ### K-Nearest Neighbors
 
@@ -191,7 +187,7 @@ The XGBoost model outperformed the others with a 79% average accuracy across val
 This model can be useful in flagging students for intervention in online courses.  However, preprocessing data correctly is crucial for model accuracy.  In order to properly scale new data the CourseScaler transformer would need to be fitted on at least one entire course worth of data, or would at least need to be provided with the mean and standard deviation of each feature for that course.  This model does not lend itself to web deployment, but could be integrated into the backend analytics of an online education provider to help target students for support.
 
 # Summary:
-I built an eXtreme Gradient Boosted tree-based model that can, at the halfway point of an online course, determine with almost 80% accuracy who does or does not need additional intervention to pass.  I worked to make the model generalizable to new data from new courses and new learning systems by scaling data by course and balancing the numbers of passing and not passing students using synthetic data samples.  This model can be useful to online education organizations by automatically flag students needing additional help or intervention.
+All of my models performed better on cross-validation than on the 2014J presentation hold-out set, but the variation in accuracy between presentations in both the cross-validation presentations and the testing presentations was large, rangining from 70% to %80.  
 
 # Next Steps:
 1. There are many more model types I can try with this data.  I could try various deep learning approaches to capture more abstract patterns in the data, one-vs-one shallow modeling strategies, or a K-nearest neighbors model.  The last could be practical do to my small number of features.
