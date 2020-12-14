@@ -2,9 +2,14 @@
 
 ## Directory:
 
+
+[Report Notebook](report/report_notebook.ipynb)
+
 [Exploratory Data Analysis](notebooks/OU_eda.ipynb)
 
-[Model Development](notebooks/shallow_modeling.ipynb)
+[Shallow Model Development](notebooks/shallow_modeling.ipynb)
+
+[Deep Model Development](notebooks/deep_models.ipynb)
 
 [Data](content/anonymisedData.zip)
 
@@ -16,7 +21,6 @@
 
 [Presentation](report/OU_student_predictor_presentation.pdf)
 
-[Report Notebook](report/report_notebook.ipynb)
 
 
 ![empty computer](figures/goran-ivos-empty-computer-unsplash.jpg)
@@ -141,6 +145,8 @@ I've discussed some of the preparation I did, but here is a more comprehensive d
 ### Custom Tools
 
 The preprocessing needs for this project are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  I also wanted to cross-validate by presentation rather than by randomly assembled folds.  Because of this I had to code my own versions of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE over-sampler to balance the classes in only the training set.  I also needed custom gridsearch and cross-validation tools to properly apply the proprocessing to prevent data leakage and to cross-validate by presentation rather than by randomly sampled observations.  Once I had these coded, my model development could proceed.
+
+# Under Construction Below This Point
 
 ### Logistic Regression
 
