@@ -182,7 +182,7 @@ The XGBoost model again performed similarly to the other shallow models with an 
 
 ### Final Model: Deep Neural Network
 
-[Dense Prediction Network](figures/dense8plot.png)
+![Dense Prediction Network](figures/dense8plot.png)
 
 I had the best luck implementing a 10 layer deep neural network for predictions.  This model predicted student success at 77% accuracy on the validation set and 76% on the hold-out set.  I did not use cross validation with the dense model, as this would have proven unfeasible given the training time and the number of cross validation folds I was using with other model.  Instead I reserved 20% of the training set, presentations before October of 2014, for validation and conducted final testing on the 2014J modules.  It continues, however to have a lot of variance in the accuracy across modules, and to overpredict student success.
 
@@ -190,7 +190,7 @@ In the end my models did not generalize across courses as well as I had hoped, h
 
 Below you can find the confusion matrices for the October 2014 cohorts in each module in the dataset and the associated overall accuracy for that cohort.  You can see that, with the exception of Module AAA, which has the least number of students, this deep, dense model predicted with between 73% and 78% accuracy for each module.  However, for modules CCC and DDD it drastically overpredicted that students would pass the course.  Even at 50% accuracy in module DDD, however, it was better than random, which would have been about 33% for this unbalanced dataset.
 
-[Confusion Matrices Between Modules](/figures/best_dense_course_confmats.png)
+![Confusion Matrices Between Modules](/figures/best_dense_course_confmats.png)
 
 # Error Analysis
 
