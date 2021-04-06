@@ -50,6 +50,7 @@ The data is contained in [this zip file](content/anonymisedData.zip) and can be 
 
 This dataset contains regional, demographic, and personal data about students, but I was only interested in data about how they interacted with the learning environment.  In the studentVle.csv file available in the [anonymiseData.zip](content/anonymisedData.zip) file the university provided information about each activity that each student interacted with, including the date relative to course start and number of clicks on that activity.  
 
+## For Statistics on Demographic Data, [See This Associated Dashboard](https://public.tableau.com/profile/josh8746#!/vizhome/OpenUniversityOnlineStudentSuccess/ResultsbyEducation)
 
 # Features for Predictive Modeling
 
@@ -146,8 +147,6 @@ I've discussed some of the preparation I did, but here is a more comprehensive d
 ### Custom Tools
 
 The preprocessing needs for this project are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  I also wanted to cross-validate by presentation rather than by randomly assembled folds.  Because of this I had to code my own versions of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE over-sampler to balance the classes in only the training set.  I also needed custom gridsearch and cross-validation tools to properly apply the proprocessing to prevent data leakage and to cross-validate by presentation rather than by randomly sampled observations.  Once I had these coded, my model development could proceed.
-
-# Under Construction Below This Point
 
 ### Logistic Regression
 
