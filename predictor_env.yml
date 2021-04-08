@@ -1,4 +1,4 @@
-name: base
+name: student_predictor_env
 channels:
   - conda-forge
   - defaults
