@@ -1,7 +1,24 @@
 # Predicting Student Success Using Virtual Learning Environment Interaction Statistics
 
-## Directory:
+![empty computer](figures/goran-ivos-empty-computer-unsplash.jpg)
+Image by Goran Ivos, courtesy of [Unsplash](https://unsplash.com/)
 
+# Introduction:
+
+## The Problem
+Online learning has been a growing and maturing industry for years now, and in a way, the internet has always been about learning.  [Khan Academy](https://www.khanacademy.org/) was, to me, a quintessential step in self-driven learning and massive open online courses (MOOCs) like [Coursera](https://www.coursera.org/) create an even more structured approaches to online, self-driven learning.  I took my first online course on coding fundamentals from [edX](https://www.edx.org/) in 2013 and started my data science journey in 2019 on Coursera.
+
+While these are an amazing resources, they also have high dropout and failure rates.  Many students, accustomed to the accountability features in traditional face-to-face learning, struggle with the openness of these systems and the lack accountability.  In self-driven learning, it can be easy to get lost or give up.
+
+## The Solution
+
+I set out to find ways to use data to help students succeed by identifying those who are in danger of failing or withdrawing early.  Many students in need of special intervention to improve their chances of success can be identified by the way they interact with the online learning system itself.  
+
+The goal of this project is to model student interactions with an online learning environment to predict whether they will ultimately pass or fail a course early enouth for intervention to be effective.  My model captures the underlying patterns of behavior that predict the success of students in any self-paced online learning environment.
+
+In order to simulate this kind of prediction, I fit a model on chronologically earlier cohorts of students, their behavior and outcomes, and then validate my model on the latest cohorts present in the dataset.
+
+## Directory:
 
 [Report Notebook](report/report_notebook.ipynb)
 
@@ -21,26 +38,6 @@
 
 [Presentation](report/OU_student_predictor_presentation.pdf)
 
-
-
-![empty computer](figures/goran-ivos-empty-computer-unsplash.jpg)
-Image by Goran Ivos, courtesy of [Unsplash](https://unsplash.com/)
-
-
-# Introduction:
-
-## The Problem
-Online learning has been a growing and maturing industry for years now, and in a way, the internet has always been about learning.  [Khan Academy](https://www.khanacademy.org/) was, to me, a quintessential step in self-driven learning and massive open online courses (MOOCs) like [Coursera](https://www.coursera.org/) create an even more structured approaches to online, self-driven learning.  I took my first online course on coding fundamentals from [edX](https://www.edx.org/) in 2013 and started my data science journey in 2019 on Coursera.
-
-While these are an amazing resources, they also have high dropout and failure rates.  Many students, accustomed to the accountability features in traditional face-to-face learning, struggle with the openness of these systems and the lack accountability.  In self-driven learning, it can be easy to get lost or give up.
-
-## The Solution
-
-I set out to find ways to use data to help students succeed by identifying those who are in danger of failing or withdrawing early.  Many students in need of special intervention to improve their chances of success can be identified by the way they interact with the online learning system itself.  
-
-The goal of this project is to model student interactions with an online learning environment to predict whether they will ultimately pass or fail a course early enouth for intervention to be effective.  My model captures the underlying patterns of behavior that predict the success of students in any self-paced online learning environment.
-
-In order to simulate this kind of prediction, I fit a model on chronologically earlier cohorts of students, their behavior and outcomes, and then validate my model on the latest cohorts present in the dataset.
 
 # The Data
 I used a dataset from [Open University](http://www.openuniversity.edu/) based out of Great Britain.  They are an entirely online university offering accredited degrees to distance learners.  They released anonymized data from seven courses, three from the social sciences and four STEM courses, from the academic years 2012/2013 and 2013/2014.  These courses are repeated twice per year and each repetition is call a 'presentation'. Not all presentations of each course are included in the dataset.  To learn more about how the data was selected and anonymised, please visit this [US National Institute of Health](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5704676/) site that holds the data for scientific inquiry.
@@ -146,8 +143,6 @@ I've discussed some of the preparation I did, but here is a more comprehensive d
 ### Custom Tools
 
 The preprocessing needs for this project are unique and don't work well with off the shelf Sci-Kit Learn and Imbalanceed Learn pipelines, cross-validation, and grid search tools.  My preprocessing steps need the `code_module` feature in order to scale and balance each course separately, but that feature should not be passed to the model.  I also wanted to cross-validate by presentation rather than by randomly assembled folds.  Because of this I had to code my own versions of each of these that would fit a scaler to each course in the training set, use that fit scaler to scale both the training and test set, and then use the Imbalanced Learn SMOTE over-sampler to balance the classes in only the training set.  I also needed custom gridsearch and cross-validation tools to properly apply the proprocessing to prevent data leakage and to cross-validate by presentation rather than by randomly sampled observations.  Once I had these coded, my model development could proceed.
-
-# Under Construction Below This Point
 
 ### Logistic Regression
 
