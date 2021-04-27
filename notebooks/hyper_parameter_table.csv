@@ -1,24 +1,31 @@
 model,vectorization,features,regularization,regularization_strength,class_imbalance,accuracy,f1_score
-RandomForestClassifier,None,activities_x_clicks,None,None,None,0.7843089030988687,0.8442550168708933
-RandomForestClassifier,None,clicks,None,None,None,0.7825873093949828,0.8428723782438677
-RandomForestClassifier,None,clicks,None,None,balanced weights,0.779881947860305,0.8420123565754634
-RandomForestClassifier,None,activities,None,None,balanced weights,0.779636005902607,0.8414720452937013
-RandomForestClassifier,None,activities_x_clicks,None,None,balanced weights,0.779390063944909,0.8410419989367358
-RandomForestClassifier,None,activities,None,None,None,0.780127889818003,0.8410384068278804
+XGBClassifier,None,clicks_activities_product_assessments_module,None,None,None,0.8413685847589425,0.8810792804796802
+RandomForestClassifier,None,clicks_activities_product_assessments_module,None,None,None,0.8282603865807598,0.8773599873076313
+RandomForestClassifier,None,clicks_activities_product_assessments_module,None,None,balanced weights,0.817373916907354,0.8695238095238095
+RandomForestClassifier,None,clicks,None,None,None,0.7940457676071984,0.8554949337490256
+RandomForestClassifier,None,activities,None,None,None,0.7933792490557654,0.8553204729309272
+RandomForestClassifier,None,activities_x_clicks,None,None,None,0.7920462119528994,0.8545680546923555
+RandomForestClassifier,None,clicks,None,None,balanced weights,0.788935792046212,0.8517015298157976
+RandomForestClassifier,None,activities,None,None,balanced weights,0.7869362363919129,0.8506928226685349
+RandomForestClassifier,None,activities_x_clicks,None,None,balanced weights,0.7842701621861808,0.8488715953307393
+XGBClassifier,None,activities_x_clicks,None,None,None,0.7887136191957342,0.843250370858744
+LogisticRegression,None,clicks_activities_product_assessments_module,l2,1.0,None,0.7749389024661186,0.8413469068128426
 RandomForestClassifier,None,clicks_activities_product,None,None,balanced weights,0.778652238071815,0.8408206579412805
+XGBClassifier,None,clicks,None,None,None,0.7851588535880916,0.840560593569662
 RandomForestClassifier,None,clicks_activities_product,None,None,None,0.778652238071815,0.8401988636363636
-XGBClassifier,None,activities,None,None,None,0.7673389080177078,0.8190512624330527
-XGBClassifier,None,clicks,None,None,None,0.765125430398426,0.8175740210124165
+XGBClassifier,None,activities,None,None,None,0.7831592979337925,0.838784274859597
+LogisticRegression,None,clicks_activities_product_assessments_module,l2,1.0,balanced weights,0.7638302599422351,0.8178859002912455
 XGBClassifier,None,clicks_activities_product,None,None,None,0.765371372356124,0.8171012269938649
-XGBClassifier,None,activities_x_clicks,None,None,None,0.7611903590752582,0.8141626794258373
-DecisionTreeClassifier,None,activities_x_clicks,None,None,balanced weights,0.6819970486965077,0.7413482696539307
-DecisionTreeClassifier,None,activities,None,None,balanced weights,0.6785538612887358,0.7359062436855931
-DecisionTreeClassifier,None,clicks,None,None,balanced weights,0.6773241515002459,0.7335499593826157
+DecisionTreeClassifier,None,clicks_activities_product_assessments_module,None,None,balanced weights,0.764496778493668,0.8157803267292317
+DecisionTreeClassifier,None,clicks_activities_product_assessments_module,None,None,None,0.76049766718507,0.8103448275862069
+DecisionTreeClassifier,None,activities_x_clicks,None,None,balanced weights,0.7020662075094424,0.7675507020280812
+DecisionTreeClassifier,None,activities,None,None,balanced weights,0.6954010219951122,0.7603565810173046
+DecisionTreeClassifier,None,clicks,None,None,balanced weights,0.6918462563874694,0.7585726718885989
+DecisionTreeClassifier,None,clicks,None,None,None,0.6940679848922462,0.7582089552238805
+DecisionTreeClassifier,None,activities,None,None,None,0.6840702066207509,0.7483185840707964
+DecisionTreeClassifier,None,activities_x_clicks,None,None,None,0.6769606754054655,0.7428369296073576
 DecisionTreeClassifier,None,clicks_activities_product,None,None,balanced weights,0.6689621249385145,0.7285195643404598
 DecisionTreeClassifier,None,clicks_activities_product,None,None,None,0.6677324151500246,0.724679029957204
-DecisionTreeClassifier,None,activities_x_clicks,None,None,None,0.6628135759960649,0.7207170503157467
-DecisionTreeClassifier,None,clicks,None,None,None,0.6598622725036891,0.7145510835913311
-DecisionTreeClassifier,None,activities,None,None,None,0.6559272011805214,0.7134958017612123
 LogisticRegression,None,activities,l2,1.0,None,0.7424987702902115,0.6694032207136091
 LogisticRegression,None,clicks,l2,1.0,None,0.7262666010821446,0.6494488188976378
 LogisticRegression,None,clicks,l2,1.0,balanced weights,0.661337924249877,0.6439100077579519
