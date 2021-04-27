@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import plot_confusion_matrix
-from IPython.display import display
+from IPython.display import display, clear_output
 
 
 def load_OU_data(prediction_window = None):
@@ -656,7 +656,7 @@ def test_model(model, X_val, y_val, plot_confusion=False):
     plt.show()
     
 def add_model(model, X_val, y_val, features, regularization=None, regularization_strength=None,
-              table=None, vectorization=None, class_imbalance=None):
+              table=None, vectorization=None, class_imbalance=None, save=False, load=False):
     from sklearn.metrics import accuracy_score, f1_score
     """
     add_model(model, hyper_param_table=None)
@@ -688,6 +688,8 @@ def add_model(model, X_val, y_val, features, regularization=None, regularization
     
     accuracy = accuracy_score(y_val, yhat)
     f1 = f1_score(y_val, yhat)
+    if load:
+        table = pd.read_csv('hyper_parameter_table.csv')
     
     hparams = {'model': model_name,
               'features': features,
@@ -712,4 +714,199 @@ def add_model(model, X_val, y_val, features, regularization=None, regularization
                                         'class_imbalance'], ignore_index=True, keep='last')
     
     table = table.sort_values(by='f1_score', ascending=False).reset_index(drop=True)
+    if save:
+        table.to_csv('hyper_parameter_table.csv')
+       
     return table
+
+def get_timeseries_table(prediction_window=None):
+    """
+    Takes prediction_window (int), which is the day of the course you want to stop taking data make your prediction.
+    Returns a table, size = (number of registrations, prediction_window * 3 + number of assessments * 2 + 4)
+    table includes count of activities, clicks, and clicks*activities for each day of the course in the window,
+    relative date submitted and score for each assessment taken, student registration, module code, 
+    and final course outcome (target).
+    """
+    student_vle, assessments, assessment_info, student_info, student_unregistration = import_tables(prediction_window)
+    
+    merged_activities = merge_activity_tables(prediction_window, student_vle,  student_info, student_unregistration)
+    
+    activity_df = get_activity_df(prediction_window, merged_activities)
+    
+    assessment_df = get_assessment_df(prediction_window, assessments, assessment_info)
+    
+    if len(assessment_df) > 0:
+        datatable = pd.merge(assessment_df, activity_df, how='outer', on='registration')
+
+    else:
+        print('No assessments found in this prediction window, table only includes activities and clicks')
+        datatable = activity_df
+
+    datatable = datatable.fillna(0)
+    datatable = datatable[datatable['date_unregistration'] >= prediction_window]
+    datatable = datatable.drop(columns=['date_unregistration'])
+    datatable = datatable.set_index('registration')
+    return datatable
+
+def import_tables(prediction_window):
+    """
+    Loads necessary tables from anonymisedData.zip
+    """
+    import pandas as pd
+    import numpy as np
+    import zipfile
+
+    #load data
+    zf = zipfile.ZipFile('../content/anonymisedData.zip') 
+    student_vle = pd.read_csv(zf.open('studentVle.csv'))
+    if prediction_window:
+        student_vle = student_vle[student_vle['date'] < prediction_window]
+    else: 
+        student_vle = student_vle[student_vle['date'] < 270]
+    
+    assessments = pd.read_csv(zf.open('studentAssessment.csv'), skiprows=[128223,64073])
+    assessments_info = pd.read_csv(zf.open('assessments.csv'))
+    
+    student_info =  pd.read_csv(zf.open('studentInfo.csv'),
+                               usecols = ['code_module','code_presentation','id_student',
+                                         'final_result'])
+    student_unregistration = pd.read_csv(zf.open('studentRegistration.csv'),
+                                  usecols = ['code_module','code_presentation','id_student',
+                                             'date_unregistration'])
+
+    #combine module, presentation, and student id columns into one registration column
+    student_vle['registration'] = student_vle['code_module'] \
+                                    + student_vle['code_presentation'] \
+                                    + student_vle['id_student'].astype(str)
+
+    student_info['registration'] = student_info['code_module'] \
+                                + student_info['code_presentation'] \
+                                + student_info['id_student'].astype('str')
+
+    student_unregistration['registration'] = student_unregistration['code_module'] \
+                                + student_unregistration['code_presentation'] \
+                                + student_unregistration['id_student'].astype('str')
+    
+    student_unregistration['date_unregistration'].fillna(student_vle['date'].max()+1, inplace=True)
+    
+    return (student_vle, assessments, assessments_info, student_info, student_unregistration)
+
+def merge_activity_tables(prediction_window, student_vle, student_info, student_unregistration):
+    """
+    helper function for get_table(). Takes several data tables and returns dataframe of the 
+    numbers of activities and clicks and dates of withdrawal and course results.  
+    Each row represent one day of work for each student registration up the the prediction window.
+    """
+    #group by registration and day
+    vle_group = student_vle.groupby(by = ['registration', 'date'])
+
+    #sum activities and clicks per day. activities are '.count()' because each row is an activity.
+    sum_activities = vle_group.count().reset_index()[['registration','date','id_site']]
+    sum_clicks = vle_group.sum().reset_index()[['registration','date','sum_click']]
+
+    merged_activities = pd.merge(sum_activities, sum_clicks, on=['registration','date'], how='inner',
+                                 validate='1:1')
+    merged_activities = merged_activities.merge(student_info[['registration','final_result', 'code_module']], 
+                                                on='registration')
+    merged_activities = merged_activities.rename(columns = {'id_site':'sum_activities'})
+
+    merged_activities['activities_x_clicks'] = merged_activities['sum_activities'] \
+                                             * merged_activities['sum_click']
+    merged_activities = merged_activities.sort_values(by=['registration','date'])
+
+    #A little more cleanup
+    merged_activities = merged_activities.merge(student_unregistration[['registration','date_unregistration']],
+                                                                      on='registration', how='left')
+    
+    merged_actitivies = merged_activities['date_unregistration'].fillna(prediction_window)
+    merged_activities = merged_activities.fillna(0)
+    merged_activities = merged_activities.drop_duplicates(keep='first')
+    
+    return merged_activities
+
+def get_activity_df(prediction_window, merged_activities):
+    """
+    Takes the merged table of activities and returns a new table with one row per student registration
+    and columns for numbers of activities, clicks, and activities * clicks for each day of the course
+    up to the prediction window
+    """
+
+
+    date_range = range(merged_activities.date.min(), prediction_window)
+
+    activity_df = pd.DataFrame()
+    activity_df['registration'] = merged_activities['registration'].unique()
+    counter = len(date_range)
+
+    for date in date_range:
+        single_date_df = merged_activities[merged_activities['date'] == date][['registration',
+                                                                               'sum_activities',
+                                                                               'sum_click',
+                                                                               'activities_x_clicks']]
+
+        single_date_df.columns = ['registration'] + [f'{x}_{date}' for x in single_date_df.columns[1:]]
+
+        activity_df = activity_df.merge(single_date_df, 
+                                                how='left', 
+                                                on='registration',
+                                                validate = '1:m')
+
+        print('activity days merged: ', counter)
+        clear_output(wait=True)
+        counter -= 1
+
+    activity_df = activity_df.fillna(0)
+
+    activity_df = activity_df.merge(merged_activities[['registration','code_module','final_result',
+                                                       'date_unregistration']].drop_duplicates(), 
+                                    how='left', 
+                                    on='registration')
+
+    if prediction_window:
+        activity_df = activity_df[activity_df['date_unregistration'] >= prediction_window]
+
+    return activity_df
+
+def get_assessment_df(prediction_window, assessments, assessment_info):
+    """
+    Merges student assessments with assessment information.
+    Returns a dataframe with a row for each student registration
+    and columns for each assessment students completed before the prediction window 
+    """
+    full_assess = assessments.merge(assessment_info, on='id_assessment', how='left')
+    full_assess = full_assess.dropna(axis=0, subset=['score'])
+    full_assess['date'] = full_assess['date'].fillna(full_assess['date_submitted'])
+
+    full_assess['registration'] = full_assess['code_module'] \
+                                + full_assess['code_presentation'] \
+                                + full_assess['id_student'].astype(int).astype(str)
+    full_assess['assess_submitted'] = full_assess['date_submitted'] - full_assess['date']
+    full_assess = full_assess[['registration','assess_submitted','score','date']]
+
+    if prediction_window:
+        full_assess = full_assess[full_assess['date'] < prediction_window]
+
+    if len(full_assess) > 0:
+        grouped_assess = full_assess.groupby('registration')
+        max_assess_count = grouped_assess.count().max().max()
+    else:
+        return full_assess
+
+    counter = max_assess_count
+    temp_assess = full_assess.sort_values(by=['date','assess_submitted'])
+    registered = full_assess.registration.unique()
+    assess_timeseries = pd.DataFrame(registered, columns=['registration'])
+
+    for assess_num in range(max_assess_count):
+        single_assess = temp_assess.groupby('registration').head(1)
+        single_assess = single_assess[['registration','assess_submitted','score']]
+        single_assess = single_assess.rename(columns = {'assess_submitted':f'assess_submitted_{assess_num+1}',
+                                                              'score':f'assess_score_{assess_num+1}'})
+        assess_timeseries = assess_timeseries.merge(single_assess, on='registration', how='left')
+        temp_assess = temp_assess.drop(index = single_assess.index)
+
+        print('assessments merged: ', counter)
+        clear_output(wait=True)
+        counter -= 1
+
+    return assess_timeseries
