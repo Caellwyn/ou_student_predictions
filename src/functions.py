@@ -401,7 +401,7 @@ def model_evaluate_presentation(model, train, test, scoring='accuracy'):
     
 class GridSearchPresentationCV():
     """
-    Course_GridSearchCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
+    GridSearchPresentationCV(self, estimator, params, scoring='accuracy', verbose = 0)
     ---
     Grid search object using cross validation to find the best combination of parameters and keeping the best estimator and it's best cv scores and the mean of that list of cv scores.  It uses course_cross_validate to to cross validate each model using a custom and static pipeline to appropriately scale and smote each fold by course.
     ---
@@ -413,7 +413,7 @@ class GridSearchPresentationCV():
     """
     def __init__(self, estimator, params, scoring='accuracy', verbose = 0):
         """
-        Course_GridSearchCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
+        GridSearchPresentationCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
         ---
         Grid search object using cross validation to find the best combination of parameters and keeping the best estimator and it's best cv scores and the mean of that list of cv scores.  It uses course_cross_validate to to cross validate each model using a custom and static pipeline to appropriately scale and smote each fold by course.
         ---
@@ -655,7 +655,7 @@ def test_model(model, X_val, y_val, plot_confusion=False):
                              cmap = 'Greens')
     plt.show()
     
-def add_model(model, X_val, y_val, features, regularization=None, regularization_strength=None,
+def add_model(model, X_t, y_t, X_val, y_val, features, regularization=None, regularization_strength=None,
               table=None, vectorization=None, class_imbalance=None, save=False, load=False):
     from sklearn.metrics import accuracy_score, f1_score
     """
@@ -669,7 +669,6 @@ def add_model(model, X_val, y_val, features, regularization=None, regularization
     with info for passed model as the first entry.
     """
 
-    yhat = model.predict(X_val)
     
     if type(model).__name__ == 'LogisticRegression':
         if regularization == None:
@@ -686,8 +685,15 @@ def add_model(model, X_val, y_val, features, regularization=None, regularization
     else:
         model_name = type(model).__name__
     
-    accuracy = accuracy_score(y_val, yhat)
-    f1 = f1_score(y_val, yhat)
+    val_yhat = model.predict(X_val)
+    train_yhat = model.predict(X_t)
+
+    train_accuracy = accuracy_score(y_t, train_yhat)
+    val_accuracy = accuracy_score(y_val, val_yhat)
+    
+    train_f1 = f1_score(y_t, train_yhat)
+    val_f1 = f1_score(y_val, val_yhat)
+        
     if load:
         table = pd.read_csv('hyper_parameter_table.csv')
     
@@ -697,15 +703,18 @@ def add_model(model, X_val, y_val, features, regularization=None, regularization
               'regularization': regularization,
               'regularization_strength': regularization_strength, 
               'class_imbalance': class_imbalance,
-              'accuracy': accuracy,
-              'f1_score': f1}
+              'train_accuracy': train_accuracy,
+              'val_accuracy': val_accuracy,  
+              'train_f1_score': train_f1,
+              'val_f1_score': val_f1}
                 
     if type(table) is not type(None):
         table = table.append(hparams, ignore_index=True)
     else:
         table = pd.DataFrame(columns = ['model','vectorization', 'features',
                                         'regularization', 'regularization_strength',
-                                        'class_imbalance', 'accuracy', 'f1_score'])
+                                        'class_imbalance', 'train_accuracy', 'val_accuracy', 
+                                        'train_f1_score', 'val_f1_score'])
         table = table.append(hparams, ignore_index=True)
         
     table = table.fillna('None')
@@ -713,19 +722,24 @@ def add_model(model, X_val, y_val, features, regularization=None, regularization
                                         'regularization', 'regularization_strength',
                                         'class_imbalance'], ignore_index=True, keep='last')
     
-    table = table.sort_values(by='f1_score', ascending=False).reset_index(drop=True)
+    table = table.sort_values(by='val_f1_score', ascending=False).reset_index(drop=True)
     if save:
         table.to_csv('hyper_parameter_table.csv')
        
     return table
 
-def get_timeseries_table(prediction_window=None):
+
+def get_timeseries_table(prediction_window=None, binary_labels=False, one_hot_modules=False):
+
+
     """
     Takes prediction_window (int), which is the day of the course you want to stop taking data make your prediction.
     Returns a table, size = (number of registrations, prediction_window * 3 + number of assessments * 2 + 4)
     table includes count of activities, clicks, and clicks*activities for each day of the course in the window,
     relative date submitted and score for each assessment taken, student registration, module code, 
     and final course outcome (target).
+    Set binary_lables to True to change 'Pass' and 'Distinction' to 1 and 'Fail' and 'Withdrawn' to 0
+    Set one_hot to true to one-hot encode the module codes.
     """
     student_vle, assessments, assessment_info, student_info, student_unregistration = import_tables(prediction_window)
     
@@ -745,6 +759,15 @@ def get_timeseries_table(prediction_window=None):
     datatable = datatable.fillna(0)
     datatable = datatable[datatable['date_unregistration'] >= prediction_window]
     datatable = datatable.drop(columns=['date_unregistration'])
+    if binary_labels:
+        binary_labels = {'Pass':1,
+                         'Distinction':1,
+                         'Withdrawn':0,
+                         'Fail':0}
+
+        datatable['final_result'] = datatable['final_result'].map(binary_labels)
+    if one_hot_modules:
+        datatable = pd.get_dummies(datatable, prefix='module', columns=['code_module'])
     datatable = datatable.set_index('registration')
     return datatable
 
