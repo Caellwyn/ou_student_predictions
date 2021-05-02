@@ -738,7 +738,9 @@ def get_timeseries_table(prediction_window=None, binary_labels=False, one_hot_mo
     table includes count of activities, clicks, and clicks*activities for each day of the course in the window,
     relative date submitted and score for each assessment taken, student registration, module code, 
     and final course outcome (target).
-    Set binary_lables to True to change 'Pass' and 'Distinction' to 1 and 'Fail' and 'Withdrawn' to 0
+
+    Set binary_lables to True to change 'Pass' and 'Distinction' to 0 and 'Fail' and 'Withdrawn' to 1
+    
     Set one_hot to true to one-hot encode the module codes.
     """
     student_vle, assessments, assessment_info, student_info, student_unregistration = import_tables(prediction_window)
@@ -760,10 +762,10 @@ def get_timeseries_table(prediction_window=None, binary_labels=False, one_hot_mo
     datatable = datatable[datatable['date_unregistration'] >= prediction_window]
     datatable = datatable.drop(columns=['date_unregistration'])
     if binary_labels:
-        binary_labels = {'Pass':1,
-                         'Distinction':1,
-                         'Withdrawn':0,
-                         'Fail':0}
+        binary_labels = {'Pass':0,
+                         'Distinction':0,
+                         'Withdrawn':1,
+                         'Fail':1}
 
         datatable['final_result'] = datatable['final_result'].map(binary_labels)
     if one_hot_modules:
