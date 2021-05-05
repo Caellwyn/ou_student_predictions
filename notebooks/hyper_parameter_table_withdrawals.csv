@@ -1,8 +1,0 @@
-model,vectorization,features,regularization,regularization_strength,class_imbalance,train_accuracy,val_accuracy,train_f1_score,val_f1_score
-LogisticRegression,None,"all, and predicting withdrawals",l2,1.0,balanced weights,0.6580506591616057,0.642746056431904,0.2539990305380514,0.2291466922339405
-DecisionTreeClassifier,None,"all, and predicting withdrawals",None,None,balanced weights,1.0,0.848478115974228,1.0,0.1453634085213032
-DecisionTreeClassifier,None,"all, and predicting withdrawals",None,None,None,1.0,0.8427016218618085,1.0,0.1407766990291262
-LogisticRegression,None,"all, and predicting withdrawals",l2,1.0,None,0.9063842393719448,0.9009109086869584,0.1098591549295774,0.097165991902834
-XGBClassifier,None,"all, and predicting withdrawals",None,None,None,0.9777070063694268,0.9169073539213508,0.8379106085083468,0.041025641025641026
-RandomForestClassifier,None,"all, and predicting withdrawals",None,None,None,1.0,0.9182403910242168,1.0,0.010752688172043
-RandomForestClassifier,None,"all, and predicting withdrawals",None,None,balanced weights,1.0,0.9177960453232616,1.0,0.0106951871657754

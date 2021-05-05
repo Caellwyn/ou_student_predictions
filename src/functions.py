@@ -656,7 +656,7 @@ def test_model(model, X_val, y_val, plot_confusion=False):
     plt.show()
     
 def add_model(model, X_t, y_t, X_val, y_val, features, regularization=None, regularization_strength=None,
-              table=None, vectorization=None, class_imbalance=None, save=False, load=False):
+              table=None, preprocessing=None, class_imbalance=None, save=False, load=False):
     from sklearn.metrics import accuracy_score, f1_score
     """
     add_model(model, hyper_param_table=None)
@@ -664,7 +664,7 @@ def add_model(model, X_t, y_t, X_val, y_val, features, regularization=None, regu
     and returns a new hyperparameter table with model information added.
     ------------------
     model: an sklearn classifier
-    hyper_param_table: (default=None) a table of model names, hyperparameters
+    table: (default=None) a table of model names, hyperparameters
     and metrics.  If none passed,a new table will be returned 
     with info for passed model as the first entry.
     """
@@ -685,6 +685,7 @@ def add_model(model, X_t, y_t, X_val, y_val, features, regularization=None, regu
     else:
         model_name = type(model).__name__
     
+    model.fit(X_t, y_t)
     val_yhat = model.predict(X_val)
     train_yhat = model.predict(X_t)
 
@@ -695,11 +696,14 @@ def add_model(model, X_t, y_t, X_val, y_val, features, regularization=None, regu
     val_f1 = f1_score(y_val, val_yhat)
         
     if load:
-        table = pd.read_csv('hyper_parameter_table.csv')
+        try:
+            table = pd.read_csv('hyper_parameter_table.csv')
+        except:
+            table = None
     
     hparams = {'model': model_name,
               'features': features,
-              'vectorization': vectorization,
+              'preprocessing': preprocessing,
               'regularization': regularization,
               'regularization_strength': regularization_strength, 
               'class_imbalance': class_imbalance,
@@ -711,22 +715,24 @@ def add_model(model, X_t, y_t, X_val, y_val, features, regularization=None, regu
     if type(table) is not type(None):
         table = table.append(hparams, ignore_index=True)
     else:
-        table = pd.DataFrame(columns = ['model','vectorization', 'features',
+        table = pd.DataFrame(columns = ['model','preprocessing', 'features',
                                         'regularization', 'regularization_strength',
                                         'class_imbalance', 'train_accuracy', 'val_accuracy', 
                                         'train_f1_score', 'val_f1_score'])
         table = table.append(hparams, ignore_index=True)
         
     table = table.fillna('None')
-    table = table.drop_duplicates(subset = ['model', 'vectorization', 'features',
+    table = table.drop_duplicates(subset = ['model', 'preprocessing', 'features',
                                         'regularization', 'regularization_strength',
                                         'class_imbalance'], ignore_index=True, keep='last')
     
     table = table.sort_values(by='val_f1_score', ascending=False).reset_index(drop=True)
     if save:
-        table.to_csv('hyper_parameter_table.csv')
+        table.to_csv('hyper_parameter_table.csv', index=False)
        
     return table
+
+
 
 
 def get_timeseries_table(prediction_window=None, binary_labels=False, one_hot_modules=False):
@@ -759,7 +765,8 @@ def get_timeseries_table(prediction_window=None, binary_labels=False, one_hot_mo
         datatable = activity_df
 
     datatable = datatable.fillna(0)
-    datatable = datatable[datatable['date_unregistration'] >= prediction_window]
+    if prediction_window:
+        datatable = datatable[datatable['date_unregistration'] >= prediction_window]
     datatable = datatable.drop(columns=['date_unregistration'])
     if binary_labels:
         binary_labels = {'Pass':0,
@@ -843,10 +850,12 @@ def merge_activity_tables(prediction_window, student_vle, student_info, student_
     merged_activities = merged_activities.merge(student_unregistration[['registration','date_unregistration']],
                                                                       on='registration', how='left')
     
-    merged_actitivies = merged_activities['date_unregistration'].fillna(prediction_window)
+    if prediction_window:
+        merged_actitivies = merged_activities['date_unregistration'].fillna(prediction_window)
+    else:
+        merged_actitivies = merged_activities['date_unregistration'].fillna(merged_activities['date'].max())
     merged_activities = merged_activities.fillna(0)
     merged_activities = merged_activities.drop_duplicates(keep='first')
-    
     return merged_activities
 
 def get_activity_df(prediction_window, merged_activities):
@@ -856,8 +865,10 @@ def get_activity_df(prediction_window, merged_activities):
     up to the prediction window
     """
 
-
-    date_range = range(merged_activities.date.min(), prediction_window)
+    if prediction_window:
+        date_range = range(merged_activities.date.min(), prediction_window)
+    else:
+        date_range = range(merged_activities.date.min(), merged_activities.date.max())
 
     activity_df = pd.DataFrame()
     activity_df['registration'] = merged_activities['registration'].unique()
