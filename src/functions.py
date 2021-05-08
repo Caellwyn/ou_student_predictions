@@ -699,12 +699,14 @@ def add_hypersearch(opt):
     to a hyperparameter table.
     """
     model = opt.best_estimator_
-    parameters = {'model':type(model).__name__,
+    scores = {'model':type(model).__name__,
                'val_roc_auc': opt.cv_results_['mean_test_score'],
                'train_roc_auc': opt.cv_results_['mean_train_score'],
               }
-    parameters.update(opt.cv_results_['params'])
-    parameters = pd.DataFrame(results, index=[0])
+    scores = pd.DataFrame(scores)
+    
+    parameters = pd.DataFrame(opt.cv_results_['params'])
+    table = pd.concat([scores, parameters], axis=1)
 
     try:
         old_table = pd.read_csv('hyperparameter_table.csv')
@@ -714,11 +716,6 @@ def add_hypersearch(opt):
     table = table.drop_duplicates()
     table = table.sort_values(by='val_roc_auc', ascending=False)
     table.to_csv('hyperparameter_table.csv', index=False)
-
-
-
-
-
 
 def get_timeseries_table(prediction_window=None, binary_labels=False, one_hot_modules=False):
 
