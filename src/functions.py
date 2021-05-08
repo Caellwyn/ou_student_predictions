@@ -4,6 +4,9 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import plot_confusion_matrix
 from IPython.display import display, clear_output
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, \
+average_precision_score, roc_auc_score, plot_precision_recall_curve, plot_roc_curve, plot_confusion_matrix 
+
 
 
 def load_OU_data(prediction_window = None):
@@ -401,7 +404,7 @@ def model_evaluate_presentation(model, train, test, scoring='accuracy'):
     
 class GridSearchPresentationCV():
     """
-    Course_GridSearchCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
+    GridSearchPresentationCV(self, estimator, params, scoring='accuracy', verbose = 0)
     ---
     Grid search object using cross validation to find the best combination of parameters and keeping the best estimator and it's best cv scores and the mean of that list of cv scores.  It uses course_cross_validate to to cross validate each model using a custom and static pipeline to appropriately scale and smote each fold by course.
     ---
@@ -413,7 +416,7 @@ class GridSearchPresentationCV():
     """
     def __init__(self, estimator, params, scoring='accuracy', verbose = 0):
         """
-        Course_GridSearchCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
+        GridSearchPresentationCV(self, estimator, params, cv=5, scoring='accuracy', verbose = False)
         ---
         Grid search object using cross validation to find the best combination of parameters and keeping the best estimator and it's best cv scores and the mean of that list of cv scores.  It uses course_cross_validate to to cross validate each model using a custom and static pipeline to appropriately scale and smote each fold by course.
         ---
@@ -655,77 +658,81 @@ def test_model(model, X_val, y_val, plot_confusion=False):
                              cmap = 'Greens')
     plt.show()
     
-def add_model(model, X_val, y_val, features, regularization=None, regularization_strength=None,
-              table=None, vectorization=None, class_imbalance=None, save=False, load=False):
-    from sklearn.metrics import accuracy_score, f1_score
+def add_model(model, X_t, y_t, X_val, y_val,
+              preprocessing=None, 
+              features='Not Provided'):
     """
-    add_model(model, hyper_param_table=None)
-    Takes a model and a hyperparamter table
-    and returns a new hyperparameter table with model information added.
-    ------------------
-    model: an sklearn classifier
-    hyper_param_table: (default=None) a table of model names, hyperparameters
-    and metrics.  If none passed,a new table will be returned 
-    with info for passed model as the first entry.
+    Scores a model by several metrics and saves it to a hyperparameter table
     """
+    train_probs = model.predict_proba(X_t)[:,1]
+    train_yhat = np.round_(train_probs)
+    val_probs = model.predict_proba(X_val)[:,1]
+    val_yhat = np.round_(val_probs)
+    parameters = {'model' : type(model).__name__,
+                  'val_roc_auc' : roc_auc_score(y_val, val_probs), 
+                  'train_roc_auc': roc_auc_score(y_t, train_probs), 
+                  'val_accuracy': accuracy_score(y_val, val_yhat),
+                  'train_accuracy': accuracy_score(y_t, train_yhat),
+                  'val_f1_score': f1_score(y_val, val_yhat),
+                  'train_f1_score': f1_score(y_val, val_yhat),
+                  'features': features,
+                  'preprocessing': preprocessing,
+                 }
+    parameters.update(model.get_params())
+    parameters = pd.DataFrame(parameters, index=[0])
 
-    yhat = model.predict(X_val)
+    try:
+        table = pd.read_csv('hyperparameter_table.csv')
+    except:
+        table = pd.DataFrame()
+    table = table.append(parameters, ignore_index=True)
+    table = table.drop_duplicates(subset=table.columns[7:], keep='last')
+    table = table.sort_values(by='val_roc_auc', ascending=False)
+    table.to_csv('hyperparameter_table.csv', index=False)
     
-    if type(model).__name__ == 'LogisticRegression':
-        if regularization == None:
-            try:
-                regularization = model.get_params()['penalty']
-            except:
-                pass
-        
-        if regularization_strength == None:
-            regularization_strength = model.get_params()['C']
-    
-    if type(model).__name__ == 'GridSearchCV':
-        model_name = model.get_params()['estimator']
-    else:
-        model_name = type(model).__name__
-    
-    accuracy = accuracy_score(y_val, yhat)
-    f1 = f1_score(y_val, yhat)
-    if load:
-        table = pd.read_csv('hyper_parameter_table.csv')
-    
-    hparams = {'model': model_name,
-              'features': features,
-              'vectorization': vectorization,
-              'regularization': regularization,
-              'regularization_strength': regularization_strength, 
-              'class_imbalance': class_imbalance,
-              'accuracy': accuracy,
-              'f1_score': f1}
-                
-    if type(table) is not type(None):
-        table = table.append(hparams, ignore_index=True)
-    else:
-        table = pd.DataFrame(columns = ['model','vectorization', 'features',
-                                        'regularization', 'regularization_strength',
-                                        'class_imbalance', 'accuracy', 'f1_score'])
-        table = table.append(hparams, ignore_index=True)
-        
-    table = table.fillna('None')
-    table = table.drop_duplicates(subset = ['model', 'vectorization', 'features',
-                                        'regularization', 'regularization_strength',
-                                        'class_imbalance'], ignore_index=True, keep='last')
-    
-    table = table.sort_values(by='f1_score', ascending=False).reset_index(drop=True)
-    if save:
-        table.to_csv('hyper_parameter_table.csv')
-       
-    return table
 
-def get_timeseries_table(prediction_window=None):
+def add_hypersearch(opt):
+    
+    """
+    opt: a fitted hyperparameter search instance.
+    Adds scores and hyperparameters from a hyperparameter search
+    to a hyperparameter table.
+    """
+    model = opt.best_estimator_
+    parameters = {'model':type(model).__name__,
+               'val_roc_auc': opt.cv_results_['mean_test_score'],
+               'train_roc_auc': opt.cv_results_['mean_train_score'],
+              }
+    parameters.update(opt.cv_results_['params'])
+    parameters = pd.DataFrame(results, index=[0])
+
+    try:
+        old_table = pd.read_csv('hyperparameter_table.csv')
+    except:
+        old_table = pd.DataFrame()
+    table = old_table.append(table, ignore_index=True)
+    table = table.drop_duplicates()
+    table = table.sort_values(by='val_roc_auc', ascending=False)
+    table.to_csv('hyperparameter_table.csv', index=False)
+
+
+
+
+
+
+def get_timeseries_table(prediction_window=None, binary_labels=False, one_hot_modules=False):
+
+
     """
     Takes prediction_window (int), which is the day of the course you want to stop taking data make your prediction.
     Returns a table, size = (number of registrations, prediction_window * 3 + number of assessments * 2 + 4)
     table includes count of activities, clicks, and clicks*activities for each day of the course in the window,
     relative date submitted and score for each assessment taken, student registration, module code, 
     and final course outcome (target).
+
+    Set binary_lables to True to change 'Pass' and 'Distinction' to 0 and 'Fail' and 'Withdrawn' to 1
+    
+    Set one_hot to true to one-hot encode the module codes.
     """
     student_vle, assessments, assessment_info, student_info, student_unregistration = import_tables(prediction_window)
     
@@ -743,8 +750,18 @@ def get_timeseries_table(prediction_window=None):
         datatable = activity_df
 
     datatable = datatable.fillna(0)
-    datatable = datatable[datatable['date_unregistration'] >= prediction_window]
+    if prediction_window:
+        datatable = datatable[datatable['date_unregistration'] >= prediction_window]
     datatable = datatable.drop(columns=['date_unregistration'])
+    if binary_labels:
+        binary_labels = {'Pass':0,
+                         'Distinction':0,
+                         'Withdrawn':1,
+                         'Fail':1}
+
+        datatable['final_result'] = datatable['final_result'].map(binary_labels)
+    if one_hot_modules:
+        datatable = pd.get_dummies(datatable, prefix='module', columns=['code_module'])
     datatable = datatable.set_index('registration')
     return datatable
 
@@ -818,10 +835,12 @@ def merge_activity_tables(prediction_window, student_vle, student_info, student_
     merged_activities = merged_activities.merge(student_unregistration[['registration','date_unregistration']],
                                                                       on='registration', how='left')
     
-    merged_actitivies = merged_activities['date_unregistration'].fillna(prediction_window)
+    if prediction_window:
+        merged_actitivies = merged_activities['date_unregistration'].fillna(prediction_window)
+    else:
+        merged_actitivies = merged_activities['date_unregistration'].fillna(merged_activities['date'].max())
     merged_activities = merged_activities.fillna(0)
     merged_activities = merged_activities.drop_duplicates(keep='first')
-    
     return merged_activities
 
 def get_activity_df(prediction_window, merged_activities):
@@ -831,8 +850,10 @@ def get_activity_df(prediction_window, merged_activities):
     up to the prediction window
     """
 
-
-    date_range = range(merged_activities.date.min(), prediction_window)
+    if prediction_window:
+        date_range = range(merged_activities.date.min(), prediction_window)
+    else:
+        date_range = range(merged_activities.date.min(), merged_activities.date.max())
 
     activity_df = pd.DataFrame()
     activity_df['registration'] = merged_activities['registration'].unique()
