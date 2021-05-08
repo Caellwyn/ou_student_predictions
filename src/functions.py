@@ -4,6 +4,9 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import plot_confusion_matrix
 from IPython.display import display, clear_output
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, \
+average_precision_score, roc_auc_score, plot_precision_recall_curve, plot_roc_curve, plot_confusion_matrix 
+
 
 
 def load_OU_data(prediction_window = None):
@@ -655,82 +658,64 @@ def test_model(model, X_val, y_val, plot_confusion=False):
                              cmap = 'Greens')
     plt.show()
     
-def add_model(model, X_t, y_t, X_val, y_val, features, regularization=None, regularization_strength=None,
-              table=None, preprocessing=None, class_imbalance=None, save=False, load=False):
-    from sklearn.metrics import accuracy_score, f1_score
+def add_model(model, X_t, y_t, X_val, y_val,
+              preprocessing=None, 
+              features='Not Provided'):
     """
-    add_model(model, hyper_param_table=None)
-    Takes a model and a hyperparamter table
-    and returns a new hyperparameter table with model information added.
-    ------------------
-    model: an sklearn classifier
-    table: (default=None) a table of model names, hyperparameters
-    and metrics.  If none passed,a new table will be returned 
-    with info for passed model as the first entry.
+    Scores a model by several metrics and saves it to a hyperparameter table
     """
+    train_probs = model.predict_proba(X_t)[:,1]
+    train_yhat = np.round_(train_probs)
+    val_probs = model.predict_proba(X_val)[:,1]
+    val_yhat = np.round_(val_probs)
+    parameters = {'model' : type(model).__name__,
+                  'val_roc_auc' : roc_auc_score(y_val, val_probs), 
+                  'train_roc_auc': roc_auc_score(y_t, train_probs), 
+                  'val_accuracy': accuracy_score(y_val, val_yhat),
+                  'train_accuracy': accuracy_score(y_t, train_yhat),
+                  'val_f1_score': f1_score(y_val, val_yhat),
+                  'train_f1_score': f1_score(y_val, val_yhat),
+                  'features': features,
+                  'preprocessing': preprocessing,
+                 }
+    parameters.update(model.get_params())
+    parameters = pd.DataFrame(parameters, index=[0])
 
+    try:
+        table = pd.read_csv('hyperparameter_table.csv')
+    except:
+        table = pd.DataFrame()
+    table = table.append(parameters, ignore_index=True)
+    table = table.drop_duplicates(subset=table.columns[7:], keep='last')
+    table = table.sort_values(by='val_roc_auc', ascending=False)
+    table.to_csv('hyperparameter_table.csv', index=False)
     
-    if type(model).__name__ == 'LogisticRegression':
-        if regularization == None:
-            try:
-                regularization = model.get_params()['penalty']
-            except:
-                pass
-        
-        if regularization_strength == None:
-            regularization_strength = model.get_params()['C']
-    
-    if type(model).__name__ == 'GridSearchCV':
-        model_name = model.get_params()['estimator']
-    else:
-        model_name = type(model).__name__
-    
-    model.fit(X_t, y_t)
-    val_yhat = model.predict(X_val)
-    train_yhat = model.predict(X_t)
 
-    train_accuracy = accuracy_score(y_t, train_yhat)
-    val_accuracy = accuracy_score(y_val, val_yhat)
+def add_hypersearch(opt):
     
-    train_f1 = f1_score(y_t, train_yhat)
-    val_f1 = f1_score(y_val, val_yhat)
-        
-    if load:
-        try:
-            table = pd.read_csv('hyper_parameter_table.csv')
-        except:
-            table = None
-    
-    hparams = {'model': model_name,
-              'features': features,
-              'preprocessing': preprocessing,
-              'regularization': regularization,
-              'regularization_strength': regularization_strength, 
-              'class_imbalance': class_imbalance,
-              'train_accuracy': train_accuracy,
-              'val_accuracy': val_accuracy,  
-              'train_f1_score': train_f1,
-              'val_f1_score': val_f1}
-                
-    if type(table) is not type(None):
-        table = table.append(hparams, ignore_index=True)
-    else:
-        table = pd.DataFrame(columns = ['model','preprocessing', 'features',
-                                        'regularization', 'regularization_strength',
-                                        'class_imbalance', 'train_accuracy', 'val_accuracy', 
-                                        'train_f1_score', 'val_f1_score'])
-        table = table.append(hparams, ignore_index=True)
-        
-    table = table.fillna('None')
-    table = table.drop_duplicates(subset = ['model', 'preprocessing', 'features',
-                                        'regularization', 'regularization_strength',
-                                        'class_imbalance'], ignore_index=True, keep='last')
-    
-    table = table.sort_values(by='val_f1_score', ascending=False).reset_index(drop=True)
-    if save:
-        table.to_csv('hyper_parameter_table.csv', index=False)
-       
-    return table
+    """
+    opt: a fitted hyperparameter search instance.
+    Adds scores and hyperparameters from a hyperparameter search
+    to a hyperparameter table.
+    """
+    model = opt.best_estimator_
+    parameters = {'model':type(model).__name__,
+               'val_roc_auc': opt.cv_results_['mean_test_score'],
+               'train_roc_auc': opt.cv_results_['mean_train_score'],
+              }
+    parameters.update(opt.cv_results_['params'])
+    parameters = pd.DataFrame(results, index=[0])
+
+    try:
+        old_table = pd.read_csv('hyperparameter_table.csv')
+    except:
+        old_table = pd.DataFrame()
+    table = old_table.append(table, ignore_index=True)
+    table = table.drop_duplicates()
+    table = table.sort_values(by='val_roc_auc', ascending=False)
+    table.to_csv('hyperparameter_table.csv', index=False)
+
+
 
 
 
