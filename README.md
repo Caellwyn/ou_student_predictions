@@ -46,7 +46,7 @@ The data is contained in [this zip file](content/anonymisedData.zip) and can be 
 
 This dataset contains regional, demographic, and personal data about students, but I was only interested in data about how they interacted with the learning environment.  In the studentVle.csv file available in the [anonymiseData.zip](content/anonymisedData.zip) file the university provided information about each activity that each student interacted with, including the date relative to course start and number of clicks on that activity.  
 
-## For Statistics on Demographic Data, [See This Associated Dashboard](https://public.tableau.com/profile/josh8746#!/vizhome/OpenUniversityOnlineStudentSuccess/ResultsbyEducation)
+## For Statistics on Demographic Data, [See This Associated Dashboard](https://public.tableau.com/app/profile/josh8746/viz/OpenUniversityOnlineStudentSuccess/Dashboard1)
 
 # Features for Predictive Modeling
 
