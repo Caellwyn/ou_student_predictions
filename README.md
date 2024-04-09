@@ -38,6 +38,8 @@ In order to simulate this kind of prediction, I fit a model on chronologically e
 
 [Presentation](report/OU_student_predictor_presentation.pdf)
 
+**For Statistics on Demographic Data** [See This Associated Dashboard](https://public.tableau.com/app/profile/josh8746/viz/OpenUniversityOnlineStudentSuccess/Dashboard1)
+
 
 # The Data
 I used a dataset from [Open University](http://www.openuniversity.edu/) based out of Great Britain.  They are an entirely online university offering accredited degrees to distance learners.  They released anonymized data from seven courses, three from the social sciences and four STEM courses, from the academic years 2012/2013 and 2013/2014.  These courses are repeated twice per year and each repetition is call a 'presentation'. Not all presentations of each course are included in the dataset.  To learn more about how the data was selected and anonymised, please visit this [US National Institute of Health](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5704676/) site that holds the data for scientific inquiry.
@@ -46,7 +48,7 @@ The data is contained in [this zip file](content/anonymisedData.zip) and can be 
 
 This dataset contains regional, demographic, and personal data about students, but I was only interested in data about how they interacted with the learning environment.  In the studentVle.csv file available in the [anonymiseData.zip](content/anonymisedData.zip) file the university provided information about each activity that each student interacted with, including the date relative to course start and number of clicks on that activity.  
 
-## For Statistics on Demographic Data, [See This Associated Dashboard](https://public.tableau.com/app/profile/josh8746/viz/OpenUniversityOnlineStudentSuccess/Dashboard1)
+
 
 # Features for Predictive Modeling
 
