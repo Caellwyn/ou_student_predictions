@@ -112,11 +112,11 @@ The downside is that I cannot use presentations in the test set, the 2014J prese
 The above chart shows correlations between each variable my model uses for predictions, as well as course (`code_module`) and final_result.  If you look along the row for `code_module` you will see that, for the most part, the correlations between courses and features have been removed, and the correlation between courses and `final_result` has been completely removed.
 
 If you look down the final result row you can also see how strongly each of the aggregate features I extracted are to the final result.
-1. Days Studied: .35
-2. Activities Engaged: .31
-3. Total Clicks: .27
-4. Assessments Completed: .36
-5. Average Assessment Score: .46
+1. Days Studied: .46
+2. Activities Engaged: .43
+3. Total Clicks: .37
+4. Assessments Completed: .46
+5. Average Assessment Score: .47
 
 I was very excited to see `days_studied` with such a high correlation.  My hypothesis from the start was that spreading learning out over more days would improve persistence and learning and I see validation here.  
 
